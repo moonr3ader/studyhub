@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>StudyHub – Categories</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <h1>📁 Categories</h1>
+    <nav>
+      <a href="index.html">Home</a>
+      <a href="categories.html">Categories</a>
+      <a href="queue.html">Study Queue</a>
+      <a href="search.html">Find Resources</a>
+    </nav>
+  </header>
+
+  <main>
+    <ul id="categoryTree">
+      <li>
+        <button onclick="toggle(this)">▶ Programming</button>
+        <ul class="hidden">
+          <li>JavaScript</li>
+          <li>React</li>
+        </ul>
+      </li>
+      <li>
+        <button onclick="toggle(this)">▶ Computer Science</button>
+        <ul class="hidden">
+          <li>Algorithms</li>
+          <li>Data Structures</li>
+        </ul>
+      </li>
+    </ul>
+  </main>
+
+  <footer><p>Prototype © 2025 StudyHub</p></footer>
+  <script src="script.js"></script>
+</body>
+</html>
