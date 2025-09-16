@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Learning Resource Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
+    <div class="container mx-auto px-4 py-8 max-w-6xl">
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-gray-800 mb-2">📚 Learning Hub</h1>
+            <p class="text-gray-600">Organize, search, and track your learning resources</p>
+        </div>
+
+        <!-- Add Resource Form -->
+        <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
+            <h2 class="text-xl font-semibold text-gray-800 mb-4">Add New Resource</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                <input type="text" id="resourceTitle" placeholder="Resource title" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                <select id="resourceType" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <option value="">Select type</option>
+                    <option value="Article">📄 Article</option>
+                    <option value="Video">🎥 Video</option>
+                    <option value="Book">📖 Book</option>
+                    <option value="Course">🎓 Course</option>
+                    <option value="Podcast">🎧 Podcast</option>
+                    <option value="Tutorial">💻 Tutorial</option>
+                </select>
+                <select id="resourceCategory" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <option value="">Select category</option>
+                    <option value="Programming">Programming</option>
+                    <option value="Design">Design</option>
+                    <option value="Business">Business</option>
+                    <option value="Science">Science</option>
+                    <option value="Language">Language</option>
+                    <option value="Other">Other</option>
+                </select>
+                <select id="resourcePriority" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <option value="Medium">Medium Priority</option>
+                    <option value="High">High Priority</option>
+                    <option value="Low">Low Priority</option>
+                </select>
+            </div>
+            <div class="flex gap-4 mb-4">
+                <input type="url" id="resourceUrl" placeholder="Resource URL (optional)" class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                <input type="text" id="resourceTags" placeholder="Tags (comma separated)" class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+            </div>
+            <textarea id="resourceNotes" placeholder="Notes or description" rows="2" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent mb-4"></textarea>
+            <button onclick="addResource()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors">
+                Add Resource
+            </button>
+        </div>
+
+        <!-- Search and Filter -->
+        <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
+            <div class="flex flex-wrap gap-4 items-center">
+                <input type="text" id="searchInput" placeholder="Search resources..." class="flex-1 min-w-64 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                <select id="filterType" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <option value="">All Types</option>
+                    <option value="Article">📄 Articles</option>
+                    <option value="Video">🎥 Videos</option>
+                    <option value="Book">📖 Books</option>
+                    <option value="Course">🎓 Courses</option>
+                    <option value="Podcast">🎧 Podcasts</option>
+                    <option value="Tutorial">💻 Tutorials</option>
+                </select>
+                <select id="filterCategory" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <option value="">All Categories</option>
+                    <option value="Programming">Programming</option>
+                    <option value="Design">Design</option>
+                    <option value="Business">Business</option>
+                    <option value="Science">Science</option>
+                    <option value="Language">Language</option>
+                    <option value="Other">Other</option>
+                </select>
+                <select id="filterStatus" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <option value="">All Status</option>
+                    <option value="Not Started">Not Started</option>
+                    <option value="In Progress">In Progress</option>
+                    <option value="Completed">Completed</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Stats Dashboard -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+            <div class="bg-white rounded-lg shadow p-6 text-center">
+                <div class="text-2xl font-bold text-blue-600" id="totalResources">0</div>
+                <div class="text-gray-600">Total Resources</div>
+            </div>
+            <div class="bg-white rounded-lg shadow p-6 text-center">
+                <div class="text-2xl font-bold text-green-600" id="completedResources">0</div>
+                <div class="text-gray-600">Completed</div>
+            </div>
+            <div class="bg-white rounded-lg shadow p-6 text-center">
+                <div class="text-2xl font-bold text-yellow-600" id="inProgressResources">0</div>
+                <div class="text-gray-600">In Progress</div>
+            </div>
+            <div class="bg-white rounded-lg shadow p-6 text-center">
+                <div class="text-2xl font-bold text-red-600" id="notStartedResources">0</div>
+                <div class="text-gray-600">Not Started</div>
+            </div>
+        </div>
+
+        <!-- Resources List -->
+        <div class="bg-white rounded-xl shadow-lg p-6">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-semibold text-gray-800">Your Resources</h2>
+                <div class="flex gap-2">
+                    <button onclick="sortResources('date')" class="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors">Sort by Date</button>
+                    <button onclick="sortResources('priority')" class="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors">Sort by Priority</button>
+                    <button onclick="sortResources('title')" class="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors">Sort by Title</button>
+                </div>
+            </div>
+            <div id="resourcesList" class="space-y-4">
+                <div class="text-center text-gray-500 py-8">
+                    No resources yet. Add your first learning resource above! 📚
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let resources = JSON.parse(localStorage.getItem('learningResources')) || [];
+        let currentSort = 'date';
+
+        function addResource() {
+            const title = document.getElementById('resourceTitle').value.trim();
+            const type = document.getElementById('resourceType').value;
+            const category = document.getElementById('resourceCategory').value;
+            const priority = document.getElementById('resourcePriority').value;
+            const url = document.getElementById('resourceUrl').value.trim();
+            const tags = document.getElementById('resourceTags').value.trim();
+            const notes = document.getElementById('resourceNotes').value.trim();
+
+            if (!title || !type || !category) {
+                alert('Please fill in the title, type, and category fields.');
+                return;
+            }
+
+            const resource = {
+                id: Date.now(),
+                title,
+                type,
+                category,
+                priority,
+                url,
+                tags: tags.split(',').map(tag => tag.trim()).filter(tag => tag),
+                notes,
+                status: 'Not Started',
+                dateAdded: new Date().toISOString(),
+                progress: 0
+            };
+
+            resources.push(resource);
+            saveResources();
+            clearForm();
+            displayResources();
+            updateStats();
+        }
+
+        function clearForm() {
+            document.getElementById('resourceTitle').value = '';
+            document.getElementById('resourceType').value = '';
+            document.getElementById('resourceCategory').value = '';
+            document.getElementById('resourcePriority').value = 'Medium';
+            document.getElementById('resourceUrl').value = '';
+            document.getElementById('resourceTags').value = '';
+            document.getElementById('resourceNotes').value = '';
+        }
+
+        function deleteResource(id) {
+            if (confirm('Are you sure you want to delete this resource?')) {
+                resources = resources.filter(r => r.id !== id);
+                saveResources();
+                displayResources();
+                updateStats();
+            }
+        }
+
+        function updateStatus(id, status) {
+            const resource = resources.find(r => r.id === id);
+            if (resource) {
+                resource.status = status;
+                if (status === 'Completed') resource.progress = 100;
+                else if (status === 'In Progress' && resource.progress === 0) resource.progress = 25;
+                else if (status === 'Not Started') resource.progress = 0;
+                saveResources();
+                displayResources();
+                updateStats();
+            }
+        }
+
+        function updateProgress(id, progress) {
+            const resource = resources.find(r => r.id === id);
+            if (resource) {
+                resource.progress = parseInt(progress);
+                if (progress == 0) resource.status = 'Not Started';
+                else if (progress == 100) resource.status = 'Completed';
+                else resource.status = 'In Progress';
+                saveResources();
+                displayResources();
+                updateStats();
+            }
+        }
+
+        function getTypeIcon(type) {
+            const icons = {
+                'Article': '📄',
+                'Video': '🎥',
+                'Book': '📖',
+                'Course': '🎓',
+                'Podcast': '🎧',
+                'Tutorial': '💻'
+            };
+            return icons[type] || '📄';
+        }
+
+        function getPriorityColor(priority) {
+            const colors = {
+                'High': 'bg-red-100 text-red-800',
+                'Medium': 'bg-yellow-100 text-yellow-800',
+                'Low': 'bg-green-100 text-green-800'
+            };
+            return colors[priority] || 'bg-gray-100 text-gray-800';
+        }
+
+        function getStatusColor(status) {
+            const colors = {
+                'Not Started': 'bg-gray-100 text-gray-800',
+                'In Progress': 'bg-blue-100 text-blue-800',
+                'Completed': 'bg-green-100 text-green-800'
+            };
+            return colors[status] || 'bg-gray-100 text-gray-800';
+        }
+
+        function displayResources() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const typeFilter = document.getElementById('filterType').value;
+            const categoryFilter = document.getElementById('filterCategory').value;
+            const statusFilter = document.getElementById('filterStatus').value;
+
+            let filteredResources = resources.filter(resource => {
+                const matchesSearch = resource.title.toLowerCase().includes(searchTerm) ||
+                                    resource.notes.toLowerCase().includes(searchTerm) ||
+                                    resource.tags.some(tag => tag.toLowerCase().includes(searchTerm));
+                const matchesType = !typeFilter || resource.type === typeFilter;
+                const matchesCategory = !categoryFilter || resource.category === categoryFilter;
+                const matchesStatus = !statusFilter || resource.status === statusFilter;
+
+                return matchesSearch && matchesType && matchesCategory && matchesStatus;
+            });
+
+            // Sort resources
+            filteredResources.sort((a, b) => {
+                if (currentSort === 'date') {
+                    return new Date(b.dateAdded) - new Date(a.dateAdded);
+                } else if (currentSort === 'priority') {
+                    const priorityOrder = { 'High': 3, 'Medium': 2, 'Low': 1 };
+                    return priorityOrder[b.priority] - priorityOrder[a.priority];
+                } else if (currentSort === 'title') {
+                    return a.title.localeCompare(b.title);
+                }
+                return 0;
+            });
+
+            const resourcesList = document.getElementById('resourcesList');
+            
+            if (filteredResources.length === 0) {
+                resourcesList.innerHTML = '<div class="text-center text-gray-500 py-8">No resources found matching your criteria.</div>';
+                return;
+            }
+
+            resourcesList.innerHTML = filteredResources.map(resource => `
+                <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                    <div class="flex items-start justify-between mb-3">
+                        <div class="flex items-center gap-3">
+                            <span class="text-2xl">${getTypeIcon(resource.type)}</span>
+                            <div>
+                                <h3 class="font-semibold text-gray-800 text-lg">${resource.title}</h3>
+                                <div class="flex gap-2 mt-1">
+                                    <span class="px-2 py-1 text-xs rounded-full ${getPriorityColor(resource.priority)}">${resource.priority}</span>
+                                    <span class="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-800">${resource.category}</span>
+                                    <span class="px-2 py-1 text-xs rounded-full ${getStatusColor(resource.status)}">${resource.status}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <button onclick="deleteResource(${resource.id})" class="text-red-500 hover:text-red-700 text-sm">
+                            🗑️ Delete
+                        </button>
+                    </div>
+
+                    ${resource.notes ? `<p class="text-gray-600 text-sm mb-3">${resource.notes}</p>` : ''}
+
+                    ${resource.tags.length > 0 ? `
+                        <div class="flex flex-wrap gap-1 mb-3">
+                            ${resource.tags.map(tag => `<span class="px-2 py-1 text-xs bg-blue-50 text-blue-700 rounded">#${tag}</span>`).join('')}
+                        </div>
+                    ` : ''}
+
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-4">
+                            <div class="flex items-center gap-2">
+                                <label class="text-sm text-gray-600">Status:</label>
+                                <select onchange="updateStatus(${resource.id}, this.value)" class="text-sm border border-gray-300 rounded px-2 py-1">
+                                    <option value="Not Started" ${resource.status === 'Not Started' ? 'selected' : ''}>Not Started</option>
+                                    <option value="In Progress" ${resource.status === 'In Progress' ? 'selected' : ''}>In Progress</option>
+                                    <option value="Completed" ${resource.status === 'Completed' ? 'selected' : ''}>Completed</option>
+                                </select>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <label class="text-sm text-gray-600">Progress:</label>
+                                <input type="range" min="0" max="100" value="${resource.progress}" 
+                                       onchange="updateProgress(${resource.id}, this.value)"
+                                       class="w-20">
+                                <span class="text-sm text-gray-600 w-10">${resource.progress}%</span>
+                            </div>
+                        </div>
+                        ${resource.url ? `<a href="${resource.url}" target="_blank" class="text-blue-600 hover:text-blue-800 text-sm">🔗 Open</a>` : ''}
+                    </div>
+
+                    <div class="mt-2 text-xs text-gray-500">
+                        Added: ${new Date(resource.dateAdded).toLocaleDateString()}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function sortResources(sortBy) {
+            currentSort = sortBy;
+            displayResources();
+        }
+
+        function updateStats() {
+            const total = resources.length;
+            const completed = resources.filter(r => r.status === 'Completed').length;
+            const inProgress = resources.filter(r => r.status === 'In Progress').length;
+            const notStarted = resources.filter(r => r.status === 'Not Started').length;
+
+            document.getElementById('totalResources').textContent = total;
+            document.getElementById('completedResources').textContent = completed;
+            document.getElementById('inProgressResources').textContent = inProgress;
+            document.getElementById('notStartedResources').textContent = notStarted;
+        }
+
+        function saveResources() {
+            localStorage.setItem('learningResources', JSON.stringify(resources));
+        }
+
+        // Event listeners for real-time search and filtering
+        document.getElementById('searchInput').addEventListener('input', displayResources);
+        document.getElementById('filterType').addEventListener('change', displayResources);
+        document.getElementById('filterCategory').addEventListener('change', displayResources);
+        document.getElementById('filterStatus').addEventListener('change', displayResources);
+
+        // Initialize the app
+        displayResources();
+        updateStats();
+
+        // Add some sample data if no resources exist
+        if (resources.length === 0) {
+            const sampleResources = [
+                {
+                    id: 1,
+                    title: "JavaScript Fundamentals Course",
+                    type: "Course",
+                    category: "Programming",
+                    priority: "High",
+                    url: "https://example.com/js-course",
+                    tags: ["javascript", "web-development", "fundamentals"],
+                    notes: "Comprehensive course covering ES6+ features and modern JavaScript concepts",
+                    status: "In Progress",
+                    dateAdded: new Date(Date.now() - 86400000).toISOString(),
+                    progress: 45
+                },
+                {
+                    id: 2,
+                    title: "Design Systems Article",
+                    type: "Article",
+                    category: "Design",
+                    priority: "Medium",
+                    url: "https://example.com/design-systems",
+                    tags: ["design", "ui", "systems"],
+                    notes: "Great insights on building scalable design systems",
+                    status: "Completed",
+                    dateAdded: new Date(Date.now() - 172800000).toISOString(),
+                    progress: 100
+                }
+            ];
+            resources = sampleResources;
+            saveResources();
+            displayResources();
+            updateStats();
+        }
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'98018413e0b7310b',t:'MTc1ODAzNzc4OS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
