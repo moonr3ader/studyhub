@@ -5,13 +5,40 @@
 - for the search box: The icon sits inside the input (on the left), and the extra left padding ensures the text doesn’t overlap the icon.
 */
 
+/* --------- Basic reset & typography (Step 0) --------- */
+* {
+	box-sizing: border-box;
+}
+html, body {
+	margin: 0;
+	padding: 0;
+	height: 100%;
+}
+body {
+	font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+	color: #222;
+	background: #fafafa;
+}
+
+/* Utility: visually-hidden (for screen-reader-only text) */
+.sr-only {
+	position: absolute !important;
+	width: 1px;
+    height: 1px;
+	padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0,0,0,0);
+    border: 0;
+}
+
 /* ========== HEADER LAYOUT ========== */
-header {
+.site-header {
     display: flex; 
     justify-content: space-between; /* Logo left, nav right */
     align-items: center;
-    padding: 1rem  /*top & bottom spacing*/ 2rem /*left & right spacing*/;
-    background-color: #fff;
+    padding: 1rem 2rem /*top & bottom spacing*/ 2rem /*left & right spacing*/;
+    background: #fff;
     border-bottom: 1px solid #eee;   /* subtle divider */
 }
 header a{
@@ -23,7 +50,7 @@ header a{
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    font-size: 1.5rem;
+    font-size: 1.25rem;
     font-weight: 700;
     text-decoration: none;
     color: #4b0082;

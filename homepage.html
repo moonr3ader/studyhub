@@ -11,7 +11,7 @@
     <!-- HEADER SECTION - logo (text + icon), nav links, search box -->
     <header class="site-header">
         <a href="homepage.html" class="logo" aria-label="StudyHub Home">
-            <svg class="w-6 h-6 text-gray-800 dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
+            <svg class="w-6 h-6 text-gray-800 dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
             <path d="M20 14h-2.722L11 20.278a5.511 5.511 0 0 1-.9.722H20a1 1 0 0 0 1-1v-5a1 1 0 0 0-1-1ZM9 3H4a1 1 0 0 0-1 1v13.5a3.5 3.5 0 1 0 7 0V4a1 1 0 0 0-1-1ZM6.5 18.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2ZM19.132 7.9 15.6 4.368a1 1 0 0 0-1.414 0L12 6.55v9.9l7.132-7.132a1 1 0 0 0 0-1.418Z"/>
             </svg>
             <span>StudyHub</span>
@@ -35,14 +35,85 @@
             </ul>
         </nav>
     </header>
-    <!-- MAIN CONTENT - resource cards container -->
-    <main>
-        <section>
 
+    <!-- MAIN CONTENT - resource cards container -->
+    <main class="site-main">
+        <!-- visible section heading -->
+        <section class="resources" aria-labelledby="resource-heading">
+            <h2 id="resource-heading" class="section-title">Resources</h2>
+            
+            <!-- grid container for cards -->
+             <div class="cards-grid">
+                <!-- card 1 -->
+                 <article class="card">
+                    <header class="card-header">
+                        <h3 class="card-title">Intro to Algorithms</h3>
+                        <div class="card-meta">
+                            <span class="category">Algorithms</span>
+                            <span class="difficulty">Beginner</span>
+                        </div>
+                    </header>
+                    <p class="card-desc">Learn algorithm basics: complexity, searching, sorting, and simple patterns.</p>
+                    <footer class="card-footer">
+                        <span class="rating" aria-hidden="true">⭐ 4.7</span>
+                        <a class="card-cta" href="#">View</a>
+                    </footer>
+                 </article>
+                 
+                 <!-- card 2 -->
+                 <article class="card">
+                    <header class="card-header">
+                        <h3 class="card-title">CSS Cheatsheet</h3>
+                        <div class="card-meta">
+                            <span class="category">Web Designing</span>
+                            <span class="difficulty">Intermediate</span>
+                        </div>
+                    </header>
+                    <p class="card-desc">Hands-on guide to layout with CSS Grid and practical use-cases for responsive design.</p>
+                    <footer class="card-footer">
+                        <span class="rating" aria-hidden="true">⭐ 4.7</span>
+                        <a class="card-cta" href="#">View</a>
+                    </footer>
+                 </article>
+
+                 <!-- card 3 -->
+                 <article class="card">
+                    <header class="card-header">
+                        <h3 class="card-title">Operating System</h3>
+                        <div class="card-meta">
+                            <span class="category">DevOps</span>
+                            <span class="difficulty">Beginner</span>
+                        </div>
+                    </header>
+                    <p class="card-desc">Quick reference for daily terminal tasks, file ops, and process management.</p>
+                    <footer class="card-footer">
+                        <span class="rating" aria-hidden="true">⭐ 4.4</span>
+                        <a class="card-cta" href="#">View</a>
+                    </footer>
+                 </article>
+
+                 <!-- card 4 -->
+                 <article class="card">
+                    <header class="card-header">
+                        <h3 class="card-title">Data Structures: Arrays Searching and Sorting</h3>
+                        <div class="card-meta">
+                            <span class="category">Algorithms</span>
+                            <span class="difficulty">Beginner</span>
+                        </div>
+                    </header>
+                    <p class="card-desc">Learning how to do searching and sorting with arrays.</p>
+                    <footer class="card-footer">
+                        <span class="rating" aria-hidden="true">⭐ 4.4</span>
+                        <a class="card-cta" href="#">View</a>
+                    </footer>
+                 </article>
+             </div> <!-- /.cards-grid -->
         </section>
     </main>
 
     <!-- FOOTER -->
-    <footer></footer>
+    <footer class="site-footer">
+        <p>&copy; 2025 StudyHub - All rights reserved.</p>
+    </footer>
 </body>
 </html>
