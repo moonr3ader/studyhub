@@ -1,4 +1,3 @@
-
 /*
 - common pattern style: logo on the left, nav links on the right
 - display: flex; makes it easy to align the logo and navigation, & the ul in nav side by side
@@ -7,46 +6,57 @@
 
 /* --------- Basic reset & typography (Step 0) --------- */
 * {
-	box-sizing: border-box;
+    box-sizing: border-box;
 }
-html, body {
-	margin: 0;
-	padding: 0;
-	height: 100%;
-}
+
+html,
 body {
-	font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
-	color: #222;
-	background: #fafafa;
+    margin: 0;
+    padding: 0;
+    height: 100%;
+}
+
+body {
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    color: #222;
+    background: #fafafa;
 }
 
 /* Utility: visually-hidden (for screen-reader-only text) */
 .sr-only {
-	position: absolute !important;
-	width: 1px;
+    position: absolute !important;
+    width: 1px;
     height: 1px;
-	padding: 0;
+    padding: 0;
     margin: -1px;
     overflow: hidden;
-    clip: rect(0,0,0,0);
+    clip: rect(0, 0, 0, 0);
     border: 0;
 }
 
 /* ========== HEADER LAYOUT ========== */
 .site-header {
-    display: flex; 
-    justify-content: space-between; /* Logo left, nav right */
+    display: flex;
+    justify-content: space-between;
+    /* Logo left, nav right */
     align-items: center;
-    padding: 1rem 2rem /*top & bottom spacing*/ 2rem /*left & right spacing*/;
+    padding: 1rem 2rem
+        /*top & bottom spacing*/
+        2rem
+        /*left & right spacing*/
+    ;
     background: #fff;
-    border-bottom: 1px solid #eee;   /* subtle divider */
+    border-bottom: 1px solid #eee;
+    /* subtle divider */
 }
-header a{
-    text-decoration: none; /* used for all the a tags in header section*/
+
+header a {
+    text-decoration: none;
+    /* used for all the a tags in header section*/
 }
 
 /* ========== LOGO ========== */
-.logo{
+.logo {
     display: flex;
     align-items: center;
     gap: 0.5rem;
@@ -55,61 +65,210 @@ header a{
     text-decoration: none;
     color: #4b0082;
 }
-.logo svg{
+
+.logo svg {
     width: 28px;
     height: 28px;
-    fill: currentColor;  /* Brand color */
+    fill: currentColor;
+    /* Brand color */
 }
 
 /* ========== NAVIGATION ========== */
-nav ul{
+.main-nav ul {
     display: flex;
     align-items: center;
     list-style: none;
-    gap: 1.5rem;
+    gap: 1rem;
     margin: 0;
     padding: 0;
 }
-nav ul li{
+
+.main-nav ul li {
     display: flex;
     align-items: center;
 }
-nav a{
+
+.main-nav a {
     color: #333;
     font-weight: 500;
-    transition: color 0.3s ease;
+    padding: 0.25rem 0.35rem;
+    transition: color 0.18s ease;
 }
-nav a:hover {
-    color: #0077cc;  /* hover highlight */
+
+.main-nav a:hover,
+.main-nav a:focus {
+    color: #0077cc;
+    /* hover highlight */
+    outline: none;
 }
 
 /* ========== SEARCH BOX ========== */
-.search-box{  /* Container for ixon + input */
+.search-box {
+    /* Container for ixon + input */
     position: relative;
     display: flex;
     align-items: center;
 }
+
 .search-icon {
     position: absolute;
     left: 12px;
+    width: 16px;
+    height: 16px;
     fill: #888;
-    pointer-events: none; /* not clickable */
+    pointer-events: none;
+    /* not clickable */
 }
 
 /* Style the input itself */
 #searchBar {
-    padding: 0.5rem 1rem 0.5rem 2.5rem; /* extra left padding for icon */
+    padding: 0.5rem 1rem 0.5rem 2.5rem;
+    /* extra left padding for icon */
     border: 1px solid #ccc;
     border-radius: 20px;
     font-size: 0.9rem;
     outline: none;
     transition: all 0.3s ease;
-    width: 180px; /* set a clean width */
-    height: 32px;  /* aligns with links */
+    width: 180px;
+    /* set a clean width */
+    height: 32px;
+    /* aligns with links */
 }
 
 /* Focus effect */
 #searchBar:focus {
     border-color: #0077cc;
     box-shadow: 0 0 5px rgba(0, 119, 204, 0.4);
+}
+
+
+/* ----------------------------CHECK FROM HERE-------------------------------------- */
+
+/* --------- Main / Cards layout (Step 2) --------- */
+.site-main {
+	max-width: 1100px; 
+	margin: 2rem auto;
+	padding: 0 1rem;
+}
+.section-title {
+	margin: 0 0 1rem 0; 
+	font-size: 1.25rem; 
+}
+
+/* Responsive grid: use auto-fit and minmax so layout adapts */
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1rem;
+}
+
+/* Card design: use flex column so footer sticks to bottom if content vary */
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  border: 1px solid #eee;
+  border-radius: 8px;
+  padding: 1rem;
+  background: #fff;
+  min-height: 150px;
+  box-shadow: 0 1px 3px rgba(16,24,40,0.03);
+}
+.card-header {
+	display:flex;
+	justify-content:space-between;
+	align-items:center;
+	gap: 0.5rem;
+}
+.card-title {
+	font-size: 1rem;
+	margin: 0;
+}
+.card-meta {
+	display:flex;
+	gap: 0.5rem;
+	font-size: 0.85rem;
+	color: #666;
+}
+.card-desc {
+    margin: 0;
+    color: #444;
+    font-size: 0.95rem;
+}
+
+.card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: auto;
+}
+
+.card-cta {
+    text-decoration: none;
+    background: #0077cc;
+    color: #fff;
+    padding: 0.35rem 0.6rem;
+    border-radius: 6px;
+    font-size: 0.9rem;
+}
+
+.rating {
+    font-weight: 600;
+    color: #ffb400;
+}
+
+/* --------- Footer (Step 3) --------- */
+.site-footer {
+    text-align: center;
+    padding: 1.25rem;
+    color: #666;
+    font-size: 0.95rem;
+}
+
+/* --------- Responsive tweaks (Step 4) --------- */
+@media (max-width: 760px) {
+
+    /* Stack header into two rows on smaller screens */
+    .site-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.6rem;
+        padding: 0.75rem 1rem;
+    }
+
+    .logo {
+        justify-content: center;
+    }
+
+    .main-nav ul {
+        justify-content: center;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+
+    #searchBar {
+        width: 100%;
+        max-width: 360px;
+    }
+
+    .site-main {
+        margin: 1rem auto;
+    }
+}
+
+@media (max-width: 420px) {
+
+    /* Tighter spacing on very small screens */
+    .site-header {
+        padding: 0.5rem 0.75rem;
+    }
+
+    #searchBar {
+        padding-left: 2.1rem;
+        height: 34px;
+    }
+
+    .cards-grid {
+        gap: 0.75rem;
+    }
 }
