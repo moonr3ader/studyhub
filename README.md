@@ -1,7 +1,9 @@
 # gamemaker - studyhub
 # 📚 StudyHub – Learning Resources Manager  
 StudyHub is a beginner-friendly project designed to practice **JavaScript fundamentals** and **React concepts** in a structured, weekly approach.  
-By the end of 4 weeks, you will build a functional app where users can **search, organize, and track learning resources**.
+By the end of 4 weeks, you will build a functional app where users can **search, organize, and track learning resources**.  
+
+But before begining this project, it requires a basic level of understanding in JS concepts, the week 1 of this is more to revising the basics and implementing it in the development.
 
 ---
 
