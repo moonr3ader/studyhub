@@ -1,97 +1,38 @@
-# gamemaker - studyhub
-# 📚 StudyHub – Learning Resources Manager  
-StudyHub is a beginner-friendly project designed to practice **JavaScript fundamentals** and **React concepts** in a structured, weekly approach.  
-By the end of 4 weeks, you will build a functional app where users can **search, organize, and track learning resources**.  
+# GuildDev – A Collaborative Coding & RPG Platform
 
-But before begining this project, it requires a basic level of understanding in JS concepts, the week 1 of this is more to revising the basics and implementing it in the development.
+**GuildDev** is a web-based collaborative coding platform that blends project-based learning with RPG-style progression. Designed for beginner developers, students, and hackathon enthusiasts, it creates a unified environment where users can learn, form persistent teams (Guilds), and tackle real-time coding challenges together.
 
----
+## 🚀 Features
 
-## 🎯 Project Goals
-- Learn and apply **JavaScript concepts** (arrays, recursion, strings, linked lists).
-- Build a **React app step-by-step**, focusing on one core concept per week.
-- Create a **complete project** that evolves and improves each week.
-- Practice **props drilling, API calls, JSX rendering, and conditional rendering**.
+### 🎮 Gamified Learning
+- **Preliminary Stage**: A guided tutorial for beginners to earn their first badge and unlock access to the Guild system.
+- **RPG Progression**: Earn **XP** and **Achievements** by completing tasks and challenges.
+- **Badges**: Visual indicators of verified technical skills and community contributions.
+- **Leaderboards**: Competitive rankings for both individual players and Guilds.
 
----
+### 🤝 Seamless Collaboration
+- **Guild System**: Form or join persistent teams to work on long-term projects.
+- **Shared Code Editor**: Real-time collaborative coding powered by **Socket.io** with live cursors.
+- **Integrated Chat**: Commmunicate with your team directly within the workspace.
+- **Guild Management**: Admins can manage join requests and guild-specific challenges.
+
+### 🏆 Hackathon Challenges
+- Participate in time-limited coding events.
+- **Judge0 Integration**: Safe, browser-based code execution and automated grading.
 
 ## 🛠️ Tech Stack
-- **Frontend**: React (JSX, conditional rendering, props)
-- **Language**: JavaScript (arrays, recursion, strings, linked lists)
-- **API**: OpenLibrary API / Quotable API (or any free public API)
-- **Styling**: Tailwind CSS (optional) or plain CSS
 
----
+- **Frontend**: React.js, Tailwind CSS / Bootstrap
+- **Backend**: Node.js, Express.js
+- **Database**: MongoDB (NoSQL)
+- **Real-time Engine**: Socket.io
+- **Authentication**: Firebase Authentication
+- **Code Execution**: Judge0 API
+- **Hosting**: Render / Vercel (Proposed)
 
-## 📅 Weekly Breakdown
+## 📦 Installation
 
-### **Week 1 – Arrays, Searching & Sorting + JSX**
-- **Goal**: Display and manage a static list of resources.
-- **Features**:
-  - Static dataset of learning resources (title, category, difficulty, rating).
-  - Search bar → filter list by title or category.
-  - Sorting (e.g., by difficulty or rating).
-  - Display resources in cards or a table using JSX.
-- **Deliverable**: Searchable & sortable resource list.
-
----
-
-### **Week 2 – Recursion + Conditional Rendering**
-- **Goal**: Add nested categories and collapsible views.
-- **Features**:
-  - Resource categories structured like folders (e.g., Programming → JavaScript → React).
-  - Recursively render nested categories/resources.
-  - Expand/collapse functionality using conditional rendering.
-- **Deliverable**: Folder-style navigation to browse resources.
-
----
-
-### **Week 3 – Strings + API Calls**
-- **Goal**: Integrate an API for resource search.
-- **Features**:
-  - Input box for searching new resources.
-  - Fetch results from a free API (e.g., OpenLibrary or Quotable).
-  - Process and clean strings (capitalize, trim, highlight matches).
-  - Display search results along with the static list.
-- **Deliverable**: API-powered search with string formatting.
-
----
-
-### **Week 4 – Linked List + Props Drilling**
-- **Goal**: Add a study queue manager with undo/redo.
-- **Features**:
-  - Implement a Linked List structure (`Node`, `LinkedList` class).
-  - Users can add/remove resources to a "study queue."
-  - Undo/redo functionality by traversing the linked list.
-  - Share resource/task state across multiple components (props drilling).
-- **Deliverable**: Study queue manager with undo/redo navigation.
-
----
-
-## 🚀 Final Outcome
-By the end of Week 4, StudyHub will include:
-1. **Array searching & sorting** of resources.  
-2. **Recursive category browsing** with conditional rendering.  
-3. **API-powered search** with string manipulation.  
-4. **Linked list–based study queue** with undo/redo and props drilling.
-
----
-
-## ⏱️ Time Plan
-Each week = **3–4 days × ~3 hours/day = 9–12 hours**
-- **Day 1**: Learn concepts + set up core logic.
-- **Day 2**: Implement React components.
-- **Day 3**: Style & refine functionality.
-- **Day 4 (optional)**: Stretch goals or polish.
-
----
-
-## 🌱 Stretch Goals
-- Add **localStorage** to save the study queue.
-- Visualize the **linked list** (nodes with arrows).
-- Add user authentication (e.g., Firebase) to store resources.
-
----
-
-
-Author - Anushiya I. Ravindran
+1. **Clone the repository:**
+   ```bash
+   git clone [https://github.com/your-username/guilddev.git](https://github.com/your-username/guilddev.git)
+   cd guilddev
