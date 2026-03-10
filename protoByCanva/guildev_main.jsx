@@ -39,7 +39,7 @@ async function callGemini(prompt, systemPrompt = "") {
     
     if (!response.ok) throw new Error('Gemini API Error');
     const result = await response.json();
-    return result.candidates?.[0]?.content?.parts?.[0]?.text || "The Oracle is silent...";
+    return result.cúandidates?.[0]?.content?.parts?.[0]?.text || "The Oracle is silent...";
   } catch (error) {
     console.error(error);
     return "Failed to commune with the Oracle. (API Error)";
@@ -387,48 +387,4 @@ const Leaderboards = () => (
         <div className="mb-4 text-gray-400 flex flex-col items-center"><Trophy size={40} className="mb-2" /><span className="text-xl font-bold">Pixel Paladins</span></div>
         <div className="w-full bg-gradient-to-t from-gray-500/20 to-gray-500/5 h-40 rounded-t-2xl border-x border-t border-gray-500/20 flex flex-col items-center justify-center p-6"><div className="text-4xl font-black text-gray-500/40 mb-2">2</div><div className="text-xs font-bold text-gray-400">38,900 XP</div></div>
       </div>
-      <div className="order-1 md:order-2 flex flex-col items-center flex-1 z-10">
-        <div className="mb-4 text-yellow-400 flex flex-col items-center">
-           <Trophy size={64} className="mb-2 drop-shadow-[0_0_15px_#FFD70066]" />
-           <span className="text-2xl font-black uppercase">Shadow Coders</span>
-        </div>
-        <div className="w-full bg-gradient-to-t from-yellow-500/20 to-yellow-500/5 h-56 rounded-t-2xl border-x border-t border-yellow-500/30 flex flex-col items-center justify-center p-6"><div className="text-6xl font-black text-yellow-500/40 mb-2">1</div><div className="text-sm font-bold text-yellow-500">45,200 XP</div></div>
-      </div>
-      <div className="order-3 flex flex-col items-center flex-1">
-        <div className="mb-4 text-orange-500 flex flex-col items-center"><Trophy size={32} className="mb-2" /><span className="text-lg font-bold">Logic Wizards</span></div>
-        <div className="w-full bg-gradient-to-t from-orange-500/20 to-orange-500/5 h-32 rounded-t-2xl border-x border-t border-orange-500/20 flex flex-col items-center justify-center p-6"><div className="text-3xl font-black text-orange-500/40 mb-2">3</div><div className="text-xs font-bold text-orange-500">31,200 XP</div></div>
-      </div>
-    </div>
-  </div>
-);
-
-export default function App() {
-  const [activeTab, setActiveTab] = useState('landing');
-
-  return (
-    <div className="min-h-screen bg-[#0B0E14] text-[#E0E0E0] font-sans selection:bg-[#7C4DFF] selection:text-white">
-      <Navbar activeTab={activeTab} setTab={setActiveTab} />
-      <main className="animate-in fade-in duration-700">
-        {activeTab === 'landing' && <LandingPage setTab={setActiveTab} />}
-        {activeTab === 'dashboard' && <Dashboard />}
-        {activeTab === 'workspace' && <Workspace />}
-        {activeTab === 'leaderboards' && <Leaderboards />}
-      </main>
-      <div className="fixed inset-0 pointer-events-none -z-10 overflow-hidden">
-        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-purple-600/10 rounded-full blur-[120px]"></div>
-        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-600/10 rounded-full blur-[120px]"></div>
-        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
-      </div>
-      {activeTab !== 'workspace' && (
-        <footer className="py-12 px-6 border-t border-white/5 mt-12 bg-[#05070A]">
-          <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-8 text-xs text-gray-500">
-            <span className="text-lg font-bold text-white">GUILD<span className="text-[#7C4DFF]">DEV</span></span>
-            <div className="flex gap-8 uppercase font-bold tracking-widest">
-              <a href="#">Lore</a><a href="#">Community</a><a href="#">Support</a>
-            </div>
-          </div>
-        </footer>
-      )}
-    </div>
-  );
-}
+ 
