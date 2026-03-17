@@ -17,55 +17,59 @@ const AuthPage = () => {
       } else {
         await signup(email, password);
       }
-      navigate('/dashboard');
+      navigate('/dashboard'); // Successful auth redirects to hub [cite: 167-168]
     } catch (error) {
       alert(error.message);
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#0B0E14] flex items-center justify-center font-sans text-slate-200">
-      <div className="bg-[#161B22] p-8 rounded-2xl border border-purple-500/30 shadow-[0_0_20px_rgba(124,77,255,0.2)] w-full max-w-md">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
-            {isLogin ? 'Welcome Back, Adventurer' : 'Start Your Quest'}
-          </h1>
-          <p className="text-slate-400 mt-2">Enter your credentials to enter the Guild</p>
-        </div>
+    /* This outer div centers everything on the screen */
+    <div className="min-h-screen bg-[#0B0E14] flex flex-col items-center justify-center p-6 text-slate-200">
+      
+      {/* Branding */}
+      <div className="mb-10 text-center">
+        <h1 className="text-5xl font-black text-white tracking-tighter">
+          Guild<span className="text-purple-500">Dev</span>
+        </h1>
+        <div className="h-1 w-12 bg-purple-500 mx-auto mt-2 rounded-full"></div>
+      </div>
+
+      {/* The CARD - This is what was missing the proper width/padding */}
+      <div className="w-full max-w-[400px] bg-[#161B22] p-10 rounded-3xl border border-white/5 shadow-2xl">
+        <h2 className="text-2xl font-bold text-center mb-8 text-white">
+          {isLogin ? 'Welcome Back' : 'Join the Guild'}
+        </h2>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <label className="block text-sm font-medium mb-2">Scroll Address (Email)</label>
+          <div className="flex flex-col gap-2">
+            <label className="text-xs font-bold uppercase tracking-widest text-slate-500">Scroll Address</label>
             <input 
               type="email" 
-              className="w-full bg-[#0B0E14] border border-slate-700 rounded-lg p-3 focus:border-purple-500 outline-none transition-all"
-              placeholder="name@guild.com"
+              className="w-full bg-[#0B0E14] border border-slate-800 rounded-xl p-3 outline-none focus:border-purple-500 transition-all"
+              placeholder="email@domain.com"
               onChange={(e) => setEmail(e.target.value)}
-              required
             />
           </div>
-          <div>
-            <label className="block text-sm font-medium mb-2">Secret Sigil (Password)</label>
+
+          <div className="flex flex-col gap-2">
+            <label className="text-xs font-bold uppercase tracking-widest text-slate-500">Secret Sigil</label>
             <input 
               type="password" 
-              className="w-full bg-[#0B0E14] border border-slate-700 rounded-lg p-3 focus:border-purple-500 outline-none transition-all"
+              className="w-full bg-[#0B0E14] border border-slate-800 rounded-xl p-3 outline-none focus:border-purple-500 transition-all"
               placeholder="••••••••"
               onChange={(e) => setPassword(e.target.value)}
-              required
             />
           </div>
-          
-          <button className="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-3 rounded-lg shadow-lg shadow-purple-500/20 transition-all active:scale-95">
-            {isLogin ? 'Enter The Guild' : 'Forge Account'}
+
+          <button className="w-full bg-purple-600 hover:bg-purple-500 py-4 rounded-xl font-black uppercase tracking-widest mt-4 transition-transform active:scale-95">
+            {isLogin ? 'Enter' : 'Forge'}
           </button>
         </form>
 
-        <div className="mt-6 text-center text-sm">
-          <button 
-            onClick={() => setIsLogin(!isLogin)}
-            className="text-purple-400 hover:underline"
-          >
-            {isLogin ? "Need an account? Sign up here" : "Already a member? Log in"}
+        <div className="mt-8 text-center">
+          <button onClick={() => setIsLogin(!isLogin)} className="text-sm text-slate-500 hover:text-purple-400 font-semibold transition-colors">
+            {isLogin ? "New here? Sign up" : "Member? Log in"}
           </button>
         </div>
       </div>
