@@ -1,29 +1,41 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+import { Terminal, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 
 const PreliminaryQuest = () => {
-  const [answer, setAnswer] = useState('');
-  const { currentUser } = useAuth();
+  const [code, setCode] = useState('');
+  const [isSuccess, setIsSuccess] = useState(false);
   const navigate = useNavigate();
 
   const handleVerify = async () => {
-    // Simple logic check for Day 2
-    if (answer.trim() === "return a + b" || answer.trim() === "a + b") {
+    // 1. Basic frontend logic check
+    if (code.trim().includes('return a + b') || code.trim().includes('a+b')) {
+      
       try {
-        await axios.post('http://localhost:5000/api/user/qualify', {
-          uid: currentUser.uid,
-          username: currentUser.email.split('@')[0],
-          email: currentUser.email
+        // 2. The Real API Call to your Backend!
+        // We are sending mock user data for now since Firebase isn't fully hooked up
+        const response = await axios.post('http://localhost:5000/api/user/qualify', {
+          uid: "test-user-123", 
+          username: "NoviceCoder",
+          email: "novice@guild.dev"
         });
-        alert("Quest Complete! XP Awarded.");
-        navigate('/dashboard');
-      } catch (err) {
-        console.error(err);
+
+        console.log("Server Response:", response.data); // Look at this in your browser console!
+        
+        setIsSuccess(true);
+        
+        // Redirect to dashboard after 2 seconds
+        setTimeout(() => navigate('/dashboard'), 2000);
+
+      } catch (error) {
+        console.error("Connection failed:", error);
+        alert("The server rejected the spell! Is your backend running?");
       }
+
     } else {
-      alert("The code did not pass the trial. Try again.");
+      alert("The spell failed! Check your syntax.");
     }
   };
 

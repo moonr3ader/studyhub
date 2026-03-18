@@ -1,7 +1,8 @@
 require('dotenv').config();
-const express = require('express');
-const http = require('http');
 const { Server } = require('socket.io');
+
+const http = require('http');
+const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 
@@ -25,20 +26,21 @@ mongoose.connect(process.env.MONGO_URI)
     .then(() => console.log('✅ Connected to MongoDB Atlas'))
     .catch((err) => console.error('❌ MongoDB Connection Error:', err));
 
-// --- Qualification Route ---
-app.post('/api/users/qualify', async (req, res) => {
-    const { firebaseUid } = req.body;
-    try {
-        const updatedUser = await User.findOneAndUpdate(
-            { firebaseUid },
-            { isQualified: true, $inc: { xp: 50 } }, // Award 50 XP for completing the quest
-            { new: true }
-        );
-        res.status(200).json({ message: "Quest Complete! You are now qualified.", user: updatedUser });
-    } catch (err) {
-        res.status(500).json({ error: "Failed to update qualification status." });
-    }
-});
+// // --- Qualification Route ---
+// app.post('/api/users/qualify', async (req, res) => {
+//     const { firebaseUid } = req.body;
+//     try {
+//         const updatedUser = await User.findOneAndUpdate(
+//             { firebaseUid },
+//             { isQualified: true, $inc: { xp: 50 } }, // Award 50 XP for completing the quest
+//             { new: true }
+//         );
+//         res.status(200).json({ message: "Quest Complete! You are now qualified.", user: updatedUser });
+//     } catch (err) {
+//         res.status(500).json({ error: "Failed to update qualification status." });
+//     }
+// });
+
 // When user passes the  initial test, and route updates their status in MongoDB
 app.post('/api/user/qualify', async (req, res) => {
   const { uid, username, email } = req.body;
@@ -90,7 +92,6 @@ io.on('connection', (socket) => {
 });
 
 const Guild = require('./models/Guild');
-const User = require('./models/User'); // Ensure you import the User model too
 
 // --- Guild Creation Route ---
 app.post('/api/guilds/create', async (req, res) => {
