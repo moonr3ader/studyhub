@@ -1,18 +1,15 @@
 require('dotenv').config();
 const { Server } = require('socket.io');
-
 const http = require('http');
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
-
 const User = require('./models/User');
-
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
     cors: {
-        origin: "http://localhost:5173", // Replace with your frontend URL
+        origin: "http://localhost:5173", // Replace with frontend URL
         methods: ["GET", "POST"]
     }
 });
@@ -62,6 +59,23 @@ app.post('/api/user/qualify', async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: "Failed to update adventurer status" });
   }
+});
+
+// --- Get User Profile Route ---
+app.get('/api/user/:uid', async (req, res) => {
+    try {
+        // Find the user in MongoDB using their Firebase UID
+        const user = await User.findOne({ firebaseUid: req.params.uid });
+        
+        if (!user) {
+            return res.status(404).json({ error: "Adventurer not found in the database." });
+        }
+        
+        res.status(200).json(user);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Failed to fetch adventurer stats." });
+    }
 });
 
 // --- Socket.io Logic ---

@@ -8,37 +8,42 @@ const PreliminaryQuest = () => {
   const [code, setCode] = useState('');
   const [isSuccess, setIsSuccess] = useState(false);
   const navigate = useNavigate();
+  
+  // 2. Extract the currently logged-in Firebase user
+  const { currentUser } = useAuth(); 
 
   const handleVerify = async () => {
-    // 1. Basic frontend logic check
-    if (code.trim().includes('return a + b') || code.trim().includes('a+b')) {
-      
+    const cleanedCode = code.replace(/\s+/g, '').toLowerCase();
+    
+    if (cleanedCode.includes('returna+b')) {
       try {
-        // 2. The Real API Call to your Backend!
-        // We are sending mock user data for now since Firebase isn't fully hooked up
+        // 3. Prevent crashing if someone bypasses the login screen
+        if (!currentUser) {
+          alert("You must be logged in to cast this spell!");
+          return;
+        }
+
+        // 4. Send the REAL Firebase data to MongoDB
         const response = await axios.post('http://localhost:5000/api/user/qualify', {
-          uid: "test-user-123", 
-          username: "NoviceCoder",
-          email: "novice@guild.dev"
+          uid: currentUser.uid,               // The unique Google Firebase ID
+          email: currentUser.email,           // Their login email
+          username: currentUser.email.split('@')[0] // Temporary username generator
         });
 
-        console.log("Server Response:", response.data); // Look at this in your browser console!
-        
+        console.log("Real Server Response:", response.data); 
         setIsSuccess(true);
-        
-        // Redirect to dashboard after 2 seconds
         setTimeout(() => navigate('/dashboard'), 2000);
 
       } catch (error) {
         console.error("Connection failed:", error);
-        alert("The server rejected the spell! Is your backend running?");
+        alert("The server rejected the spell!");
       }
 
     } else {
-      alert("The spell failed! Check your syntax.");
+      alert(`The spell failed! React saw: "${code}"`);
     }
   };
-
+  
   return (
     <div className="min-h-screen bg-[#0B0E14] text-slate-200 p-10 flex flex-col items-center">
       <div className="max-w-2xl w-full">
@@ -50,11 +55,17 @@ const PreliminaryQuest = () => {
           <code className="block bg-[#0B0E14] p-4 rounded-lg font-mono text-emerald-400 mb-4">
             function sum(a, b) {"{"} <br />
             &nbsp;&nbsp; // Write your code below <br />
-            &nbsp;&nbsp; <input 
-              className="bg-transparent border-b border-purple-500 outline-none text-white w-40"
-              placeholder="Your logic here"
-              onChange={(e) => setAnswer(e.target.value)}
-            /> <br />
+            &nbsp;&nbsp;
+            <input 
+              type="text"
+              className="bg-transparent border-b-2 border-purple-500/30 focus:border-purple-500 outline-none w-full text-emerald-400"
+              placeholder=" // Your code here"
+              value={code}
+              onChange={(e) => setCode(e.target.value)} 
+              
+              disabled={isSuccess}
+            />
+            <br />
             {"}"}
           </code>
         </div>
