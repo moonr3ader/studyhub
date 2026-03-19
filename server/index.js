@@ -1,15 +1,22 @@
 require('dotenv').config();
-const { Server } = require('socket.io');
 const http = require('http');
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const { Server } = require('socket.io');
+
+// Models
 const User = require('./models/User');
+const Guild = require('./models/Guild');
+
+// App Initialization
 const app = express();
 const server = http.createServer(app);
+
+// Socket.io Configuration
 const io = new Server(server, {
     cors: {
-        origin: "http://localhost:5173", // Replace with frontend URL
+        origin: "http://localhost:5173", // Note: Ensure this matches the Vite development port
         methods: ["GET", "POST"]
     }
 });
@@ -23,48 +30,43 @@ mongoose.connect(process.env.MONGO_URI)
     .then(() => console.log('✅ Connected to MongoDB Atlas'))
     .catch((err) => console.error('❌ MongoDB Connection Error:', err));
 
-// // --- Qualification Route ---
-// app.post('/api/users/qualify', async (req, res) => {
-//     const { firebaseUid } = req.body;
-//     try {
-//         const updatedUser = await User.findOneAndUpdate(
-//             { firebaseUid },
-//             { isQualified: true, $inc: { xp: 50 } }, // Award 50 XP for completing the quest
-//             { new: true }
-//         );
-//         res.status(200).json({ message: "Quest Complete! You are now qualified.", user: updatedUser });
-//     } catch (err) {
-//         res.status(500).json({ error: "Failed to update qualification status." });
-//     }
-// });
+// =========================================================
+// USER ROUTES
+// =========================================================
 
-// When user passes the  initial test, and route updates their status in MongoDB
+/**
+ * POST /api/user/qualify
+ * Note: Triggered when an adventurer completes the Preliminary Quest.
+ * Utilizes upsert to create a new profile if one does not exist, or updates an existing one.
+ */
 app.post('/api/user/qualify', async (req, res) => {
-  const { uid, username, email } = req.body;
-  try {
-    // Upsert: Find user by Firebase UID, update if exists, create if not
-    const user = await User.findOneAndUpdate(
-      { firebaseUid: uid },
-      { 
-        firebaseUid: uid,
-        username: username,
-        email: email,
-        isQualified: true, 
-        $inc: { xp: 100 } // Award initial XP
-      },
-      { upsert: true, new: true }
-    );
+    const { uid, username, email } = req.body;
+    try {
+        const user = await User.findOneAndUpdate(
+            { firebaseUid: uid },
+            { 
+                firebaseUid: uid,
+                username: username,
+                email: email,
+                isQualified: true, 
+                $inc: { xp: 100 } // Award initial Level 0 completion XP
+            },
+            { upsert: true, new: true }
+        );
 
-    res.status(200).json({ success: true, user });
-  } catch (error) {
-    res.status(500).json({ error: "Failed to update adventurer status" });
-  }
+        res.status(200).json({ success: true, user });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Failed to update adventurer status." });
+    }
 });
 
-// --- Get User Profile Route ---
+/**
+ * GET /api/user/:uid
+ * Note: Fetches the adventurer's complete profile using their Firebase UID.
+ */
 app.get('/api/user/:uid', async (req, res) => {
     try {
-        // Find the user in MongoDB using their Firebase UID
         const user = await User.findOne({ firebaseUid: req.params.uid });
         
         if (!user) {
@@ -78,63 +80,44 @@ app.get('/api/user/:uid', async (req, res) => {
     }
 });
 
-// --- Socket.io Logic ---
-io.on('connection', (socket) => {
-    console.log(`👤 User Connected: ${socket.id}`);
+// =========================================================
+// GUILD ROUTES
+// =========================================================
 
-    socket.on('join_guild', (guildId) => {
-        socket.join(guildId);
-        console.log(`🛡️ User ${socket.id} joined guild: ${guildId}`);
-    });
-
-    socket.on('disconnect', () => {
-        console.log('👤 User Disconnected', socket.id);
-    });
-
-    // When a user enters their Guild Workspace
-    socket.on('join_guild_room', (guildId) => {
-        socket.join(guildId); // User enters a private team room
-        console.log(`User ${socket.id} joined room: ${guildId}`);
-    });
-
-    // Real-time code syncing 
-    socket.on('code_update', ({ guildId, code }) => {
-        // syncing code only to guild members
-        socket.to(guildId).emit('receive_code', code);
-    });
-
-});
-
-const Guild = require('./models/Guild');
-
-// --- Guild Creation Route ---
+/**
+ * POST /api/guilds/create
+ * Note: Forges a new guild. Enforces qualification and solo-status rules.
+ * Expects 'adminUid' (Firebase UID) in the request body.
+ */
 app.post('/api/guilds/create', async (req, res) => {
-    const { name, description, adminId, requiresApproval } = req.body;
+    const { name, description, adminUid, requiresApproval } = req.body;
 
     try {
-        // 1. Verify the user exists
-        const user = await User.findById(adminId);
+        const user = await User.findOne({ firebaseUid: adminUid });
         if (!user) {
-            return res.status(404).json({ error: "User not found." });
+            return res.status(404).json({ error: "Adventurer not found." });
         }
         
-        // 2. Core Logic Check: Is the user already in a guild? [cite: 399]
+        // Rule Validation
+        if (!user.isQualified) {
+            return res.status(403).json({ error: "You must complete the Preliminary Quest before forging a Guild!" });
+        }
         if (user.isInGuild) {
-            return res.status(400).json({ error: "You're already in a guild!" }); 
+            return res.status(400).json({ error: "You are already sworn to a Guild!" }); 
         }
 
-        // 3. Form the Guild [cite: 349]
+        // Guild Creation
         const newGuild = new Guild({
             guildName: name,
             guildDescription: description,
-            adminID: adminId, // The creator is automatically appointed as Admin [cite: 399]
-            members: [adminId], // The creator is added as the first member
-            requiresApproval: requiresApproval !== undefined ? requiresApproval : true
+            adminID: user._id, 
+            members: [user._id], 
+            requiresApproval: requiresApproval || false
         });
 
         await newGuild.save();
         
-        // 4. Update the User's profile to reflect their new guild status
+        // Update the creator's profile
         user.isInGuild = true;
         user.guildID = newGuild._id;
         await user.save();
@@ -145,14 +128,105 @@ app.post('/api/guilds/create', async (req, res) => {
         });
 
     } catch (err) {
-        // Handle MongoDB duplicate key error (code 11000) for unique guild names
         if (err.code === 11000) {
-            return res.status(400).json({ error: "That Guild name is already taken." });
+            return res.status(400).json({ error: "That Guild name is already taken by another clan." });
         }
         console.error(err);
         res.status(500).json({ error: "Server error: Could not forge the guild." });
     }
 });
+
+/**
+ * GET /api/guilds
+ * Note: Fetches the active roster of all guilds. 
+ * Populates the 'members' array with usernames and levels for the Hub UI.
+ */
+app.get('/api/guilds', async (req, res) => {
+    try {
+        const guilds = await Guild.find().populate('members', 'username level');
+        res.status(200).json(guilds);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Failed to load the Guild Hub." });
+    }
+});
+
+/**
+ * POST /api/guilds/join
+ * Note: Allows a qualified adventurer to join an existing guild.
+ * Enforces maximum capacity (5 members) and prevents multi-guilding.
+ */
+app.post('/api/guilds/join', async (req, res) => {
+    const { uid, guildId } = req.body;
+    try {
+        // 1. Find the User
+        const user = await User.findOne({ firebaseUid: uid });
+        if (!user) return res.status(404).json({ error: "Adventurer not found." });
+
+        // 2. Rule Checks for the User
+        if (!user.isQualified) return res.status(403).json({ error: "You must complete the Preliminary Quest first." });
+        if (user.isInGuild) return res.status(400).json({ error: "You are already sworn to a Guild!" });
+
+        // 3. Find the Guild
+        const guild = await Guild.findById(guildId);
+        if (!guild) return res.status(404).json({ error: "Guild not found. It may have been disbanded." });
+
+        // 4. Rule Check for the Guild (Capacity)
+        if (guild.members.length >= 5) {
+            return res.status(400).json({ error: "This Guild is already at maximum capacity (5/5)." });
+        }
+
+        // 5. The Alliance (Update Both Documents)
+        guild.members.push(user._id); // Add user to guild roster
+        await guild.save();
+
+        user.isInGuild = true;        // Mark user as taken
+        user.guildID = guild._id;     // Link them to the guild
+        await user.save();
+
+        res.status(200).json({ message: `Successfully joined ${guild.guildName}!` });
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Server error: Could not join the guild." });
+    }
+});
+
+// =========================================================
+// SOCKET.IO LOGIC (REAL-TIME WORKSPACE)
+// =========================================================
+
+io.on('connection', (socket) => {
+    console.log(`👤 User Connected: ${socket.id}`);
+
+    /**
+     * Note: Handles a user entering the general guild hub or a specific team space.
+     */
+    socket.on('join_guild', (guildId) => {
+        socket.join(guildId);
+        console.log(`🛡️ User ${socket.id} joined guild: ${guildId}`);
+    });
+
+    socket.on('join_guild_room', (guildId) => {
+        socket.join(guildId); 
+        console.log(`User ${socket.id} joined private room: ${guildId}`);
+    });
+
+    /**
+     * Note: Broadcasts code editor changes to all members within the specified guild room.
+     */
+    socket.on('code_update', ({ guildId, code }) => {
+        socket.to(guildId).emit('receive_code', code);
+    });
+
+    socket.on('disconnect', () => {
+        console.log(`👤 User Disconnected: ${socket.id}`);
+    });
+});
+
+// =========================================================
+// SERVER INITIALIZATION
+// =========================================================
 
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
