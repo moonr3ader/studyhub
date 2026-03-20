@@ -152,6 +152,41 @@ app.get('/api/guilds', async (req, res) => {
 });
 
 /**
+ * GET /api/guilds/leaderboard
+ * Note: Calculates the total XP of all members in a guild.
+ * Returns the top 10 most powerful guilds sorted by total XP.
+ */
+app.get('/api/guilds/leaderboard', async (req, res) => {
+    try {
+        // Fetch all guilds and ONLY pull the 'xp' and 'username' of their members
+        const guilds = await Guild.find().populate('members', 'username xp');
+
+        // Map through the guilds and calculate the math
+        const leaderboard = guilds.map(guild => {
+            // .reduce() is a JavaScript method that adds up an array of numbers
+            const totalXP = guild.members.reduce((sum, member) => sum + (member.xp || 0), 0);
+            
+            return {
+                _id: guild._id,
+                guildName: guild.guildName,
+                memberCount: guild.members.length,
+                totalXP: totalXP
+            };
+        });
+
+        // Sort the array from highest XP to lowest XP
+        leaderboard.sort((a, b) => b.totalXP - a.totalXP);
+
+        // Send only the Top 10 back to the frontend
+        res.status(200).json(leaderboard.slice(0, 10));
+
+    } catch (err) {
+        console.error("Leaderboard Error:", err);
+        res.status(500).json({ error: "Failed to load the Hall of Fame." });
+    }
+});
+
+/**
  * POST /api/guilds/join
  * Note: Allows a qualified adventurer to join an existing guild.
  * Enforces maximum capacity (5 members) and prevents multi-guilding.

@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext';
 const GuildHub = () => {
   const { currentUser } = useAuth();
   const [guilds, setGuilds] = useState([]);
+  const [leaderboard, setLeaderboard] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   
@@ -17,8 +18,14 @@ const GuildHub = () => {
   // 1. FETCH GUILDS ON LOAD
   const fetchGuilds = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/guilds');
-      setGuilds(response.data);
+      // Run both API calls at the same time for speed
+      const [guildsRes, leaderboardRes] = await Promise.all([
+        axios.get('http://localhost:5000/api/guilds'),
+        axios.get('http://localhost:5000/api/guilds/leaderboard')
+      ]);
+      
+      setGuilds(guildsRes.data);
+      setLeaderboard(leaderboardRes.data); // <-- Save the sorted data
     } catch (err) {
       console.error("Failed to fetch guilds:", err);
       setError("The Guild Hub is currently offline.");
@@ -99,6 +106,41 @@ const GuildHub = () => {
         </div>
 
         {error && <div className="bg-red-500/10 border border-red-500/50 text-red-400 p-4 rounded-xl mb-8">{error}</div>}
+
+        {/* HALL OF FAME LEADERBOARD */}
+        <div className="mb-12 bg-gradient-to-r from-[#161B22] to-purple-900/10 border border-purple-500/20 rounded-3xl p-8">
+          <h2 className="text-2xl font-black text-white mb-6 flex items-center gap-3">
+            🏆 Hall of Fame <span className="text-sm font-normal text-purple-400 font-mono">(Top Guilds by XP)</span>
+          </h2>
+          
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="text-slate-500 text-xs uppercase tracking-widest border-b border-white/5">
+                  <th className="pb-4 font-bold pl-4">Rank</th>
+                  <th className="pb-4 font-bold">Guild Name</th>
+                  <th className="pb-4 font-bold">Members</th>
+                  <th className="pb-4 font-bold text-right pr-4">Total Power (XP)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {leaderboard.map((team, index) => (
+                  <tr key={`lb-${team._id}`} className="border-b border-white/5 hover:bg-white/5 transition-colors group">
+                    <td className="py-4 pl-4 font-mono text-purple-400 font-bold">#{index + 1}</td>
+                    <td className="py-4 font-bold text-white group-hover:text-purple-300 transition-colors">{team.guildName}</td>
+                    <td className="py-4 text-slate-400 font-mono">{team.memberCount}/5</td>
+                    <td className="py-4 font-mono text-emerald-400 font-bold text-right pr-4">{team.totalXP} XP</td>
+                  </tr>
+                ))}
+                {leaderboard.length === 0 && (
+                  <tr>
+                    <td colSpan="4" className="py-8 text-center text-slate-500 italic">The Hall of Fame is currently empty.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
 
         {/* Guild Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
