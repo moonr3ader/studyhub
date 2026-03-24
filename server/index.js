@@ -152,6 +152,25 @@ app.get('/api/guilds', async (req, res) => {
 });
 
 /**
+ * GET /api/guilds/:id
+ * Note: Fetches a specific guild's private dashboard and member roster.
+ */
+app.get('/api/guilds/:id', async (req, res) => {
+    try {
+        const guild = await Guild.findById(req.params.id).populate('members', 'username level xp isQualified');
+        
+        if (!guild) {
+            return res.status(404).json({ error: "Guild not found. The ruins are empty." });
+        }
+        
+        res.status(200).json(guild);
+    } catch (err) {
+        console.error("Guild Hall Error:", err);
+        res.status(500).json({ error: "Failed to unlock the Guild Hall doors." });
+    }
+});
+
+/**
  * GET /api/guilds/leaderboard
  * Note: Calculates the total XP of all members in a guild.
  * Returns the top 10 most powerful guilds sorted by total XP.
@@ -231,28 +250,70 @@ app.post('/api/guilds/join', async (req, res) => {
 // SOCKET.IO LOGIC (REAL-TIME WORKSPACE)
 // =========================================================
 
+// 1. The Temporary Brain: Stores messages per guild room
+const roomMemory = {}; 
+
 io.on('connection', (socket) => {
     console.log(`👤 User Connected: ${socket.id}`);
-
-    /**
-     * Note: Handles a user entering the general guild hub or a specific team space.
-     */
-    socket.on('join_guild', (guildId) => {
-        socket.join(guildId);
-        console.log(`🛡️ User ${socket.id} joined guild: ${guildId}`);
-    });
 
     socket.on('join_guild_room', (guildId) => {
         socket.join(guildId); 
         console.log(`User ${socket.id} joined private room: ${guildId}`);
+
+        // 2. Initialize the room's memory if it doesn't exist yet
+        if (!roomMemory[guildId]) {
+            roomMemory[guildId] = [];
+        }
+
+        // 3. Instantly send the existing chat history to the user who just joined/refreshed
+        socket.emit('message_history', roomMemory[guildId]);
     });
 
-    /**
-     * Note: Broadcasts code editor changes to all members within the specified guild room.
-     */
     socket.on('code_update', ({ guildId, code }) => {
         socket.to(guildId).emit('receive_code', code);
     });
+
+    socket.on('send_message', ({ guildId, messageData }) => {
+        // 4. Save the message to the temporary brain
+        if (!roomMemory[guildId]) roomMemory[guildId] = [];
+        roomMemory[guildId].push(messageData);
+        
+        // Safety lock: Keep only the last 50 messages so your server RAM doesn't overflow
+        if (roomMemory[guildId].length > 50) {
+            roomMemory[guildId].shift(); 
+        }
+
+        socket.to(guildId).emit('receive_message', messageData);
+    });
+
+    // 5. The Cleanup Crew: Wipe memory when the last person leaves
+    socket.on('disconnecting', () => {
+        socket.rooms.forEach(room => {
+            if (room !== socket.id) { // Ignore their default personal room
+                // Calculate how many people will be left in the room after this user disconnects
+                const remainingUsers = io.sockets.adapter.rooms.get(room)?.size - 1 || 0;
+                
+                if (remainingUsers === 0 && roomMemory[room]) {
+                    delete roomMemory[room]; 
+                    console.log(`🧹 Room ${room} is empty. Chat memory wiped.`);
+                }
+            }
+        });
+    });
+
+    // 6. Explicitly leaving the room (Navigation in React)
+        socket.on('leave_guild_room', (guildId) => {
+            socket.leave(guildId); // Remove the user from the room
+            console.log(`🚪 User ${socket.id} walked out of room: ${guildId}`);
+
+            // Check how many people are still in the room
+            const roomSize = io.sockets.adapter.rooms.get(guildId)?.size || 0;
+            
+            if (roomSize === 0 && roomMemory[guildId]) {
+                delete roomMemory[guildId]; 
+                console.log(`🧹 Room ${guildId} is completely empty. Chat memory wiped.`);
+            }
+        });
 
     socket.on('disconnect', () => {
         console.log(`👤 User Disconnected: ${socket.id}`);
