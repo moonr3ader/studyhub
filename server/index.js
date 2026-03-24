@@ -105,6 +105,37 @@ app.get('/api/user/:uid', async (req, res) => {
     }
 });
 
+/**
+ * POST /api/dev/make-admin
+ * Self-Note: Secret dev route to grant a user infinite power and Admin status.
+ * WARNING: Remove or heavily protect this before deploying to production!
+ */
+app.post('/api/dev/make-admin', async (req, res) => {
+    const { uid } = req.body;
+    
+    try {
+        const user = await User.findOne({ firebaseUid: uid });
+        if (!user) return res.status(404).json({ error: "Adventurer not found." });
+
+        const GOD_MODE_XP = 9999999;
+        
+        user.xp = GOD_MODE_XP;
+        user.level = calculateLevel(GOD_MODE_XP);
+        user.isAdmin = true; // <-- Official Admin Status Granted
+
+        await user.save();
+        res.status(200).json({ 
+            message: "God Mode activated. Admin privileges granted.", 
+            newLevel: user.level,
+            newXp: user.xp,
+            isAdmin: user.isAdmin
+        });
+        
+    } catch (err) {
+        res.status(500).json({ error: "Failed to grant Admin powers." });
+    }
+});
+
 // =========================================================
 // GUILD ROUTES
 // =========================================================
@@ -140,11 +171,17 @@ app.get('/api/guilds', async (req, res) => {
 // Fetch specific guild by ID
 app.get('/api/guilds/:id', async (req, res) => {
     try {
-        const guild = await Guild.findById(req.params.id).populate('members', 'username level xp isQualified');
-        if (!guild) return res.status(404).json({ error: "Guild not found" });
+        // CRITICAL: We MUST populate firebaseUid so the frontend can verify the leader.
+        // We MUST ALSO populate pendingRequests so the Leader sees who is applying.
+        const guild = await Guild.findById(req.params.id)
+            .populate('members', 'username level xp isQualified firebaseUid')
+            .populate('pendingRequests', 'username level xp'); 
+        
+        if (!guild) return res.status(404).json({ error: "Guild not found." });
+        
         res.status(200).json(guild);
     } catch (err) {
-        res.status(500).json({ error: "Guild Hall restricted" });
+        res.status(500).json({ error: "Server error" });
     }
 });
 
@@ -153,9 +190,17 @@ app.post('/api/guilds/create', async (req, res) => {
     const { name, description, adminUid, requiresApproval } = req.body;
     try {
         const user = await User.findOne({ firebaseUid: adminUid });
-        if (!user || !user.isQualified || user.isInGuild) return res.status(400).json({ error: "You are already in a guild, therefore you're ineligible for guild creation." });
+        if (!user || !user.isQualified || user.isInGuild) {
+            return res.status(400).json({ error: "You are already in a guild, therefore you're ineligible for guild creation." });
+        }
 
-        const newGuild = new Guild({ guildName: name, guildDescription: description, adminID: user._id, members: [user._id], requiresApproval });
+        const newGuild = new Guild({ 
+            guildName: name, 
+            guildDescription: description, 
+            adminID: user._id, 
+            members: [user._id], 
+            requiresApproval 
+        });
         await newGuild.save();
         
         user.isInGuild = true;
@@ -168,23 +213,117 @@ app.post('/api/guilds/create', async (req, res) => {
     }
 });
 
-// Join an existing guild
+// Join an existing guild (Adds to Pending Requests)
 app.post('/api/guilds/join', async (req, res) => {
     const { uid, guildId } = req.body;
     try {
         const user = await User.findOne({ firebaseUid: uid });
         const guild = await Guild.findById(guildId);
-        if (!user || !guild || user.isInGuild || guild.members.length >= 5) return res.status(400).json({ error: "Already in a Guild" });
 
-        guild.members.push(user._id);
+        if (!user || !guild) return res.status(404).json({ error: "Record not found." });
+        if (user.isInGuild || user.pendingGuildID) {
+            return res.status(400).json({ error: "You already have an active or pending oath." });
+        }
+        if (guild.members.length >= 5) {
+            return res.status(400).json({ error: "This guild's roster is full." });
+        }
+
+        // Add user to the Guild's waitlist
+        guild.pendingRequests.push(user._id);
         await guild.save();
-        user.isInGuild = true;
-        user.guildID = guild._id;
+
+        // Mark the user as 'Pending'
+        user.pendingGuildID = guild._id;
         await user.save();
 
-        res.status(200).json({ message: `Joined ${guild.guildName}` });
+        res.status(200).json({ message: "Request sent to the Guild Leader!" });
     } catch (err) {
-        res.status(500).json({ error: "Internal join error" });
+        res.status(500).json({ error: "Application failed." });
+    }
+});
+
+// ACCEPT MEMBER (Leader Only)
+app.post('/api/guilds/:id/accept', async (req, res) => {
+    const { adminUid, targetUserId } = req.body;
+    try {
+        const guild = await Guild.findById(req.params.id);
+        if (guild.members.length >= 5) return res.status(400).json({ error: "Guild is full!" });
+
+        // Remove from pending, add to members
+        guild.pendingRequests = guild.pendingRequests.filter(id => id.toString() !== targetUserId);
+        guild.members.push(targetUserId);
+        await guild.save();
+
+        // Update User
+        await User.findByIdAndUpdate(targetUserId, {
+            pendingGuildID: null,
+            isInGuild: true,
+            guildID: guild._id
+        });
+
+        res.status(200).json({ message: "Adventurer accepted!" });
+    } catch (err) { 
+        res.status(500).json({ error: "Accept failed" }); 
+    }
+});
+
+// DECLINE MEMBER (Leader Only)
+app.post('/api/guilds/:id/decline', async (req, res) => {
+    const { targetUserId } = req.body;
+    try {
+        const guild = await Guild.findById(req.params.id);
+        
+        // Remove from pending array
+        guild.pendingRequests = guild.pendingRequests.filter(id => id.toString() !== targetUserId);
+        await guild.save();
+
+        // Reset User's pending status
+        await User.findByIdAndUpdate(targetUserId, { pendingGuildID: null });
+        res.status(200).json({ message: "Application declined." });
+    } catch (err) { 
+        res.status(500).json({ error: "Decline failed" }); 
+    }
+});
+
+/**
+ * POST /api/guilds/:id/kick
+ * Self-Note: Removes a member from the guild. 
+ * Only the Leader can trigger this, and they can't kick themselves.
+ */
+app.post('/api/guilds/:id/kick', async (req, res) => {
+    const { adminUid, targetMemberId } = req.body;
+    const guildId = req.params.id;
+
+    try {
+        const guild = await Guild.findById(guildId);
+        const admin = await User.findOne({ firebaseUid: adminUid });
+
+        if (!guild || !admin) return res.status(404).json({ error: "Guild or Admin not found." });
+
+        // Security check: Is the requester the actual leader?
+        if (String(guild.adminID) !== String(admin._id)) {
+            return res.status(403).json({ error: "Only the Leader holds the power of banishment." });
+        }
+
+        // Prevent Leader from accidentally kicking themselves
+        if (String(targetMemberId) === String(guild.adminID)) {
+            return res.status(400).json({ error: "The Leader cannot leave their own post this way." });
+        }
+
+        // 1. Remove member from Guild array
+        guild.members = guild.members.filter(m => String(m) !== String(targetMemberId));
+        await guild.save();
+
+        // 2. Update the Target User's status
+        await User.findByIdAndUpdate(targetMemberId, {
+            isInGuild: false,
+            guildID: null
+        });
+
+        res.status(200).json({ message: "Adventurer has been removed from the roster." });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Banishment failed." });
     }
 });
 

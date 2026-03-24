@@ -4,12 +4,13 @@ import { useAuth } from '../context/AuthContext';
 
 const ProtectedRoute = ({ children }) => {
   const { currentUser } = useAuth();
-
-  // If there is no logged-in user, bounce them to the Auth page
+  
+  // If a user logs out or tries to sneak in, 
+  // send them to the Landing page ('/') instead of the Auth page.
   if (!currentUser) {
-    return <Navigate to="/auth" replace />;
+    return <Navigate to="/" replace />; 
   }
-
+  
   // If they are logged in, render the requested page (the 'children')
   return children;
 };

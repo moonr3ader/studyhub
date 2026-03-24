@@ -20,9 +20,13 @@ const GuildSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId, 
         ref: 'User' // An array of player IDs in this guild
     }],
+    pendingRequests: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+    }],
     requiresApproval: { 
         type: Boolean, 
-        default: false 
+        default: true 
     },
     createdAt: { 
         type: Date, 

@@ -55,7 +55,7 @@ const MyGuild = () => {
     }
   };
 
-  // Self-Note: Logic to remove a player from the roster
+  // Self-Note: Logic to remove a player from the active roster
   const handleKickMember = async (memberId) => {
     if (!window.confirm("Are you sure you want to banish this adventurer?")) return;
     try {
@@ -66,7 +66,49 @@ const MyGuild = () => {
       // Refresh local UI by filtering out the kicked member
       setGuild({ ...guild, members: guild.members.filter(m => m._id !== memberId) });
     } catch (err) {
-      alert("Failed to kick member.");
+      alert(err.response?.data?.error || "Failed to kick member.");
+    }
+  };
+
+  // Self-Note: Moves a user from the 'pending' list to the 'active' roster.
+  const handleAcceptApplicant = async (targetUserId) => {
+    try {
+      const response = await axios.post(`http://localhost:5000/api/guilds/${id}/accept`, {
+        adminUid: currentUser.uid,
+        targetUserId: targetUserId
+      });
+
+      if (response.status === 200) {
+        alert("Adventurer has been sworn into the guild!");
+        // Refresh local UI by moving them from pendingRequests to members
+        const acceptedUser = guild.pendingRequests.find(u => u._id === targetUserId);
+        setGuild({
+          ...guild,
+          pendingRequests: guild.pendingRequests.filter(u => u._id !== targetUserId),
+          members: [...guild.members, acceptedUser]
+        });
+      }
+    } catch (err) {
+      alert(err.response?.data?.error || "Failed to accept applicant.");
+    }
+  };
+
+  // Self-Note: Removes the user from the pending list and declines their application.
+  const handleDeclineApplicant = async (targetUserId) => {
+    try {
+      const response = await axios.post(`http://localhost:5000/api/guilds/${id}/decline`, {
+        targetUserId: targetUserId
+      });
+
+      if (response.status === 200) {
+        alert("Application declined.");
+        setGuild({
+          ...guild,
+          pendingRequests: guild.pendingRequests.filter(u => u._id !== targetUserId)
+        });
+      }
+    } catch (err) {
+      alert("Failed to decline applicant.");
     }
   };
 
@@ -74,18 +116,13 @@ const MyGuild = () => {
   if (error) return <div className="min-h-screen bg-[#0B0E14] text-red-500 flex items-center justify-center font-bold">{error}</div>;
   if (!guild) return null;
 
+  // Calculate stats
   const totalGuildXP = guild.members.reduce((sum, member) => sum + (member.xp || 0), 0);
-  // const isLeader = guild.members.find(m => m.firebaseUid === currentUser.uid)?._id === guild.adminID;
-  // Self-Note: Find the member object whose _id matches the guild's adminID, 
-  // then compare their firebaseUid string to the current user's UID.
-  const guildLeaderMember = guild.members.find(m => String(m._id) === String(guild.adminID));
-  const isLeader = guildLeaderMember?.firebaseUid === currentUser.uid;
-
-  console.log("DEBUG GUILD:", {
-    currentUID: currentUser.uid,
-    guildAdminRef: guild.adminID,
-    calculatedIsLeader: isLeader
-  });
+  
+  // Self-Note: 1. Identify which member is the leader by ID
+  const leaderObject = guild.members.find(m => String(m._id) === String(guild.adminID));
+  // 2. Compare the leader's Firebase UID to the logged-in user's Firebase UID
+  const isLeader = leaderObject?.firebaseUid === currentUser.uid;
 
   return (
     <div className="min-h-screen bg-[#0B0E14] text-slate-200 p-6 md:p-10">
@@ -117,7 +154,10 @@ const MyGuild = () => {
                 <>
                   <div className="flex items-center gap-4 mb-3">
                     <Shield className="text-purple-500" size={40} />
-                    <h1 className="text-4xl md:text-5xl font-black text-white tracking-tighter uppercase italic">{guild.guildName}</h1>
+                    {/* Self-Note: Removed 'uppercase' so custom casing is preserved */}
+                    <h1 className="text-4xl md:text-5xl font-black text-white tracking-tighter italic">
+                      {guild.guildName}
+                    </h1>
                   </div>
                   <p className="text-slate-400 text-lg max-w-2xl leading-relaxed">{guild.guildDescription}</p>
                 </>
@@ -156,18 +196,36 @@ const MyGuild = () => {
         </div>
 
         {/* --- PENDING APPLICATIONS (Leader Only) --- */}
-        {isLeader && guild.pendingMembers?.length > 0 && (
+        {isLeader && guild.pendingRequests?.length > 0 && (
           <section className="mb-12">
             <h2 className="text-xl font-black text-yellow-500 mb-6 uppercase tracking-widest flex items-center gap-2">
               <Shield size={20} /> Recruitment Requests
             </h2>
             <div className="space-y-4">
-              {guild.pendingMembers.map((req) => (
+              {guild.pendingRequests.map((req) => (
                 <div key={req._id} className="bg-yellow-500/5 border border-yellow-500/20 p-4 rounded-2xl flex items-center justify-between">
-                  <span className="font-bold text-white">{req.username} <span className="text-slate-500 font-normal text-sm ml-2">Lvl {req.level}</span></span>
+                  <div>
+                    <span className="font-bold text-white text-lg">{req.username}</span>
+                    <div className="flex gap-3 mt-1">
+                      <span className="text-slate-500 font-mono text-[10px] uppercase">Lvl {req.level || 1}</span>
+                      <span className="text-yellow-500/60 font-mono text-[10px] uppercase font-bold">{req.xp || 0} XP</span>
+                    </div>
+                  </div>
                   <div className="flex gap-2">
-                    <button className="p-2 bg-emerald-500/20 text-emerald-500 rounded-lg hover:bg-emerald-500 hover:text-white transition-all"><Check size={18} /></button>
-                    <button className="p-2 bg-red-500/20 text-red-500 rounded-lg hover:bg-red-500 hover:text-white transition-all"><X size={18} /></button>
+                    <button 
+                      onClick={() => handleAcceptApplicant(req._id)}
+                      className="p-3 bg-emerald-500/10 text-emerald-500 rounded-xl hover:bg-emerald-500 hover:text-[#0B0E14] transition-all active:scale-95"
+                      title="Accept Oath"
+                    >
+                      <Check size={20} />
+                    </button>
+                    <button 
+                      onClick={() => handleDeclineApplicant(req._id)}
+                      className="p-3 bg-red-500/10 text-red-500 rounded-xl hover:bg-red-500 hover:text-white transition-all active:scale-95"
+                      title="Decline Request"
+                    >
+                      <X size={20} />
+                    </button>
                   </div>
                 </div>
               ))}
@@ -182,19 +240,22 @@ const MyGuild = () => {
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {guild.members.map((member) => {
-            const isMemberLeader = member._id === guild.adminID;
+            const isMemberLeader = String(member._id) === String(guild.adminID);
             const isMe = member.firebaseUid === currentUser.uid;
 
             return (
               <div key={member._id} className={`bg-[#161B22] border rounded-2xl p-6 flex items-center gap-4 transition-all relative overflow-hidden group ${isMemberLeader ? 'border-yellow-500/30' : 'border-white/5 hover:border-white/10'}`}>
-                {isMemberLeader && <div className="absolute top-0 right-0 bg-yellow-500 text-[#0B0E14] text-[9px] font-black px-3 py-1 uppercase tracking-tighter rounded-bl-lg shadow-lg">Leader</div>}
+                {isMemberLeader && <div className="absolute top-0 right-0 bg-yellow-500 text-[#0B0E14] text-[9px] font-black px-3 py-1 font-bold tracking-tighter rounded-bl-lg shadow-lg">Leader</div>}
 
                 <div className={`w-12 h-12 rounded-full flex items-center justify-center text-white font-black text-xl shrink-0 ${isMemberLeader ? 'bg-gradient-to-br from-yellow-400 to-amber-600' : 'bg-[#0B0E14] border border-white/5'}`}>
                   {member.username.charAt(0).toUpperCase()}
                 </div>
 
                 <div className="flex-1">
-                  <h3 className="font-bold text-white text-lg">{member.username} {isMe && <span className="text-[10px] text-purple-500 ml-1 font-mono">(YOU)</span>}</h3>
+                  <h3 className="font-bold text-white text-lg">
+                    {member.username} 
+                    {isMe && <span className="text-[10px] text-purple-500 ml-2 font-mono">(YOU)</span>}
+                  </h3>
                   <div className="flex gap-3 mt-1">
                     <span className="text-slate-500 font-mono text-[10px] uppercase">Lvl {member.level || 1}</span>
                     <span className="text-emerald-500 font-mono text-[10px] uppercase font-bold">{member.xp || 0} XP</span>
@@ -206,6 +267,7 @@ const MyGuild = () => {
                   <button 
                     onClick={() => handleKickMember(member._id)}
                     className="p-2 text-slate-700 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
+                    title="Banish Member"
                   >
                     <UserMinus size={20} />
                   </button>

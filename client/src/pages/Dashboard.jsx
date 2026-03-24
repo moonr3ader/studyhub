@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import { Award, Clock, LogOut } from 'lucide-react';
 
 const Dashboard = () => {
   const { currentUser, logout } = useAuth(); 
+  const navigate = useNavigate();
   const [playerData, setPlayerData] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -32,7 +34,7 @@ const Dashboard = () => {
   const handleLogout = async () => {
     try {
       await logout(); 
-      window.location.href = '/'; 
+      navigate('/');
     } catch (error) {
       console.error("Failed to log out of the Guild:", error);
     }
@@ -134,6 +136,11 @@ const Dashboard = () => {
   if (playerData.isQualified) earnedBadges.push("Trial Survivor");
   if (playerData.isInGuild) earnedBadges.push("Team Player");
 
+  // Self-Note: Add 'pendingGuildID' to the check. 
+  // If they have this, they aren't 'Qualified' anymore, but they aren't 'In a Guild' yet.
+
+  const isPending = playerData.pendingGuildID;
+
   return (
     <div className="min-h-screen bg-[#0B0E14] text-slate-200 flex flex-col items-center">
       
@@ -154,19 +161,47 @@ const Dashboard = () => {
       <main className="w-full max-w-6xl p-6 md:p-10 flex-1">
         
         {/* Header */}
-        <header className="mb-10">
-          <h1 className="text-3xl md:text-4xl font-black text-white">
-            Welcome back, <br className="md:hidden" />
-            <span className="text-purple-500">{playerData.username}</span>
-          </h1>
-          <p className="text-slate-400 font-mono mt-2 text-sm md:text-base">
-            Level {playerData.level} Adventurer • {playerData.xp} Total XP
-          </p>
+        <header className="mb-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div>
+            <h1 className="text-3xl md:text-4xl font-black text-white flex items-center gap-3">
+              Welcome back, 
+              <span className="text-purple-500">{playerData.username}</span>
+              
+              {/* THE ADMIN BADGE */}
+              {playerData.isAdmin && (
+                <span className="bg-red-500/20 text-red-500 border border-red-500/50 text-[10px] uppercase tracking-widest px-2 py-1 rounded-md shadow-[0_0_10px_rgba(239,68,68,0.3)]">
+                  System Admin
+                </span>
+              )}
+            </h1>
+            <p className="text-slate-400 font-mono mt-2 text-sm md:text-base">
+              Level {playerData.level} Adventurer • {playerData.xp.toLocaleString()} Total XP
+            </p>
+          </div>
+          
+          {/* Optional: A secret button that only appears for you */}
+          {playerData.isAdmin && (
+             <button className="bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-lg font-bold text-sm transition-all shadow-lg">
+               Admin Console
+             </button>
+          )}
         </header>
 
         {/* Action Card */}
         <div className="mb-10">
-          {!playerData.isQualified ? (
+          {isPending ? (
+            <section className="bg-gradient-to-br from-yellow-900/20 to-amber-900/20 p-6 md:p-8 rounded-3xl border border-yellow-500/30 shadow-lg relative overflow-hidden">
+              <div className="relative z-10 flex flex-col md:flex-row justify-between items-center gap-6">
+                <div>
+                  <h3 className="text-xl md:text-2xl font-black mb-2 text-white">Status: Application Sent</h3>
+                  <p className="text-slate-400 max-w-lg">The Guild Leader is currently reviewing your credentials. You will be notified once they accept your oath.</p>
+                </div>
+                <button disabled className="bg-yellow-600/20 text-yellow-500 border border-yellow-500/50 px-8 py-4 rounded-xl font-black uppercase tracking-widest cursor-wait">
+                  Pending Approval
+                </button>
+              </div>
+            </section>
+          ) : !playerData.isQualified ? (
             <section className="bg-gradient-to-br from-purple-900/20 to-blue-900/20 p-6 md:p-8 rounded-3xl border border-purple-500/30 shadow-lg relative overflow-hidden">
                <div className="relative z-10">
                 <h3 className="text-xl md:text-2xl font-black mb-2 text-white">The Preliminary Trial</h3>

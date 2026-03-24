@@ -39,9 +39,20 @@ const UserSchema = new mongoose.Schema({
         type: Date, 
         default: Date.now 
     },
+    pendingGuildID: { 
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Guild',
+        default: null
+    },
     lastClaimed: { 
         type: Date,
         default: null 
+    },
+    // Self-Note: Grants ultimate authority over the GuildDev platform.
+    // Use this to render special UI elements and bypass standard game rules.
+    isAdmin: { 
+        type: Boolean, 
+        default: false 
     }
 });
 
