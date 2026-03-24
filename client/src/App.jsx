@@ -2,12 +2,16 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 
+// Import the Bouncer
+import ProtectedRoute from './components/ProtectedRoute';
+
 // Pages
 import Landing from './pages/Landing';
 import AuthPage from './pages/AuthPage';
 import Dashboard from './pages/Dashboard';
 import PreliminaryQuest from './pages/PreliminaryQuest';
 import GuildHub from './pages/GuildHub';
+import Leaderboard from './pages/Leaderboard'; // <-- Added Leaderboard
 import Workspace from './pages/Workspace';
 import MyGuild from './pages/MyGuild';
 
@@ -17,16 +21,37 @@ function App() {
   return (
     <Router>
       <AuthProvider>
-        {/* pb-16 ensures the main content doesn't get hidden behind the fixed dev menu */}
         <div className="min-h-screen bg-[#0B0E14] relative pb-16">
           <Routes>
+            {/* PUBLIC ROUTES */}
             <Route path="/" element={<Landing />} />
             <Route path="/auth" element={<AuthPage />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/quest" element={<PreliminaryQuest />} />
-            <Route path="/guilds" element={<GuildHub />} />
-            <Route path="/guild/:id" element={<MyGuild />} />
-            <Route path="/workspace/:guildId" element={<Workspace />} />
+
+            {/* PRIVATE ROUTES (Protected by the Bouncer) */}
+            <Route 
+              path="/dashboard" 
+              element={<ProtectedRoute><Dashboard /></ProtectedRoute>} 
+            />
+            <Route 
+              path="/quest" 
+              element={<ProtectedRoute><PreliminaryQuest /></ProtectedRoute>} 
+            />
+            <Route 
+              path="/guilds" 
+              element={<ProtectedRoute><GuildHub /></ProtectedRoute>} 
+            />
+            <Route 
+              path="/leaderboard" 
+              element={<ProtectedRoute><Leaderboard /></ProtectedRoute>} 
+            />
+            <Route 
+              path="/guild/:id" 
+              element={<ProtectedRoute><MyGuild /></ProtectedRoute>} 
+            />
+            <Route 
+              path="/workspace/:guildId" 
+              element={<ProtectedRoute><Workspace /></ProtectedRoute>} 
+            />
           </Routes>
 
           {/* TEMPORARY DEV NAVIGATION MENU */}
@@ -37,10 +62,11 @@ function App() {
             <Link to="/dashboard" className="text-purple-400 hover:text-white text-sm font-bold transition-colors">Dashboard</Link>
             <Link to="/quest" className="text-purple-400 hover:text-white text-sm font-bold transition-colors">Quest</Link>
             <Link to="/guilds" className="text-purple-400 hover:text-white text-sm font-bold transition-colors">Guild Hub</Link>
+            <Link to="/leaderboard" className="text-purple-400 hover:text-white text-sm font-bold transition-colors">Hall of Fame</Link>
             
-            {/* Note: These use mock IDs just so the dev link doesn't crash the router */}
-            <Link to="/guild/mock-id" className="text-slate-600 hover:text-white text-sm font-bold transition-colors">My Guild (Mock)</Link>
-            <Link to="/workspace/mock-id" className="text-slate-600 hover:text-white text-sm font-bold transition-colors">Workspace (Mock)</Link>
+            {/* These use mock IDs for testing UI without database navigation */}
+            <Link to="/guild/mock-id" className="text-slate-600 hover:text-white text-sm font-bold transition-colors">Guild (Mock)</Link>
+            <Link to="/workspace/mock-id" className="text-slate-600 hover:text-white text-sm font-bold transition-colors">Forge (Mock)</Link>
           </div>
 
         </div>

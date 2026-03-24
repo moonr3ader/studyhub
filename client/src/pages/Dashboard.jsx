@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
-import { Award, Clock, LogOut } from 'lucide-react'; // Replaced Menu/X with LogOut
+import { Award, Clock, LogOut } from 'lucide-react';
 
 const Dashboard = () => {
   const { currentUser, logout } = useAuth(); 
@@ -38,7 +38,73 @@ const Dashboard = () => {
     }
   };
 
-  // 2. CONDITIONAL RENDERING (Guards)
+  // --- CLAIM DAILY REWARD LOGIC ---
+  const claimDailyReward = async () => {
+    try {
+      const response = await axios.post('http://localhost:5000/api/user/award-xp', {
+        uid: currentUser.uid,
+        xpToAdd: 50
+      });
+
+      if (response.data.success) {
+        setPlayerData({
+          ...playerData,
+          xp: response.data.newXp,
+          level: response.data.newLevel,
+          lastClaimed: response.data.lastClaimed // Update timestamp from server
+        });
+
+        if (response.data.leveledUp) {
+          alert(`✨ LEVEL UP! You reached Level ${response.data.newLevel}!`);
+        } else {
+          alert("📜 50 XP added to your records.");
+        }
+      }
+    } catch (err) {
+      alert(err.response?.data?.error || "The Scroll is currently out of reach.");
+    }
+  };
+
+  // Countdown State & Effect
+  const [timeLeft, setTimeLeft] = useState("");
+  useEffect(() => {
+    // Function to calculate the string "Xh Ym"
+    const updateCountdown = () => {
+      if (!playerData?.lastClaimed) return;
+
+      const last = new Date(playerData.lastClaimed).getTime();
+      const now = new Date().getTime();
+      const cooldown = 24 * 60 * 60 * 1000;
+      const remaining = cooldown - (now - last);
+
+      if (remaining <= 0) {
+        setTimeLeft(""); // Timer finished
+      } else {
+        const hours = Math.floor(remaining / (1000 * 60 * 60));
+        const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
+        setTimeLeft(`${hours}h ${minutes}m`);
+      }
+    };
+
+    // Run once on mount and then every minute
+    updateCountdown();
+    const timer = setInterval(updateCountdown, 60000);
+
+    return () => clearInterval(timer);
+  }, [playerData?.lastClaimed]);
+
+  // Helper to check if button should be locked
+  const canClaim = () => {
+    if (!playerData?.lastClaimed) return true;
+    const last = new Date(playerData.lastClaimed).getTime();
+    const now = new Date().getTime();
+    const cooldown = 24 * 60 * 60 * 1000;
+    return (now - last) >= cooldown;
+  };
+
+  const isButtonLocked = !canClaim();
+
+  // 2. CONDITIONAL RENDERING
   if (loading) {
     return (
       <div className="min-h-screen bg-[#0B0E14] flex items-center justify-center">
@@ -49,7 +115,7 @@ const Dashboard = () => {
 
   if (!playerData) {
     return (
-      <div className="min-h-screen bg-[#0B0E14] text-white flex flex-col items-center justify-center">
+      <div className="min-h-screen bg-[#0B0E14] text-white flex flex-col items-center justify-center p-6 text-center">
         <h2 className="text-2xl font-bold mb-2">Profile Not Found</h2>
         <p className="text-slate-400 mb-4">Your adventurer card is missing from our records.</p>
         <a href="/quest" className="bg-purple-600 hover:bg-purple-500 px-6 py-3 rounded-lg font-bold transition-all">
@@ -59,7 +125,7 @@ const Dashboard = () => {
     );
   }
 
-  // 3. RPG MATH & LOGIC
+  // 3. RPG MATH
   const currentLevel = playerData.level || 1;
   const nextLevelXp = Math.pow(currentLevel, 2) * 100; 
   const xpPercentage = Math.min((playerData.xp / nextLevelXp) * 100, 100);
@@ -68,13 +134,12 @@ const Dashboard = () => {
   if (playerData.isQualified) earnedBadges.push("Trial Survivor");
   if (playerData.isInGuild) earnedBadges.push("Team Player");
 
-  // 4. MAIN DASHBOARD UI
   return (
     <div className="min-h-screen bg-[#0B0E14] text-slate-200 flex flex-col items-center">
       
       {/* TOP NAVIGATION BAR */}
       <nav className="w-full max-w-6xl mx-auto flex justify-between items-center p-6 border-b border-white/5">
-        <h2 className="text-2xl font-black text-white italic tracking-tighter">
+        <h2 className="text-2xl font-black text-white italic tracking-tighter cursor-default">
           Guild<span className="text-purple-500">Dev</span>
         </h2>
         <button 
@@ -86,7 +151,6 @@ const Dashboard = () => {
         </button>
       </nav>
 
-      {/* MAIN CONTENT AREA */}
       <main className="w-full max-w-6xl p-6 md:p-10 flex-1">
         
         {/* Header */}
@@ -100,77 +164,73 @@ const Dashboard = () => {
           </p>
         </header>
 
-        {/* Dynamic Action Card (Quest vs Guild Hub) */}
+        {/* Action Card */}
         <div className="mb-10">
           {!playerData.isQualified ? (
             <section className="bg-gradient-to-br from-purple-900/20 to-blue-900/20 p-6 md:p-8 rounded-3xl border border-purple-500/30 shadow-lg relative overflow-hidden">
                <div className="relative z-10">
                 <h3 className="text-xl md:text-2xl font-black mb-2 text-white">The Preliminary Trial</h3>
-                <p className="text-slate-400 mb-6 max-w-lg text-sm md:text-base">You must prove your skill before joining a Guild. Complete the coding challenge to unlock the rest of the platform.</p>
-                <a href="/quest" className="inline-block bg-purple-600 hover:bg-purple-500 px-6 py-3 rounded-xl font-bold text-white transition-all shadow-[0_0_15px_rgba(168,85,247,0.4)] text-sm md:text-base">
-                  Begin Level 0 Quest
+                <p className="text-slate-400 mb-6 max-w-lg text-sm md:text-base">Complete the coding challenge to unlock the platform.</p>
+                <a href="/quest" className="inline-block bg-purple-600 hover:bg-purple-500 px-6 py-3 rounded-xl font-bold text-white transition-all shadow-[0_0_15px_rgba(168,85,247,0.4)]">
+                  Begin Quest
                 </a>
               </div>
             </section>
           ) : (
             <section className="bg-gradient-to-br from-emerald-900/20 to-teal-900/20 p-6 md:p-8 rounded-3xl border border-emerald-500/30 shadow-lg relative overflow-hidden">
                <div className="relative z-10 flex flex-col xl:flex-row justify-between xl:items-center gap-6">
-                
-                {/* Dynamic Text based on Guild Status */}
                 <div>
                   <h3 className="text-xl md:text-2xl font-black mb-2 text-white">
                     Status: {playerData.isInGuild ? 'Sworn to a Guild' : 'Qualified Freelancer'}
                   </h3>
                   <p className="text-slate-400 max-w-xl text-sm md:text-base mt-2">
                     {playerData.isInGuild 
-                      ? "You are an active member of a Guild. Head to your Guild Hall to collaborate with your team, or visit the Hub to scout the competition."
-                      : "You are ready to join a team. Visit the Guild Hub to find your squad or forge your own clan."}
+                      ? "Head to your Guild Hall to collaborate with your team."
+                      : "Visit the Guild Hub to find your squad or forge your own clan."}
                   </p>
                 </div>
-                
-                {/* Action Buttons */}
                 <div className="flex flex-col sm:flex-row gap-4 w-full xl:w-auto">
-                  
-                  {/* Always-on Hub Button */}
-                  <button 
-                    onClick={() => window.location.href = '/guilds'}
-                    className="w-full sm:w-auto bg-[#0B0E14] border border-emerald-500/50 hover:bg-emerald-500/10 text-emerald-400 px-6 py-4 rounded-xl font-black uppercase tracking-widest transition-all text-center text-sm md:text-base"
-                  >
+                  <button onClick={() => window.location.href = '/guilds'} className="w-full sm:w-auto bg-[#0B0E14] border border-emerald-500/50 hover:bg-emerald-500/10 text-emerald-400 px-6 py-4 rounded-xl font-black uppercase tracking-widest transition-all">
                     Guild Hub
                   </button>
-
-                  {/* Dynamic Guild Hall Button */}
                   {playerData.isInGuild && playerData.guildID ? (
-                    <button 
-                      onClick={() => window.location.href = `/guild/${playerData.guildID}`}
-                      className="w-full sm:w-auto bg-purple-600 hover:bg-purple-500 px-8 py-4 rounded-xl font-black uppercase tracking-widest text-white transition-all shadow-[0_0_15px_rgba(168,85,247,0.4)] text-center text-sm md:text-base"
-                    >
+                    <button onClick={() => window.location.href = `/guild/${playerData.guildID}`} className="w-full sm:w-auto bg-purple-600 hover:bg-purple-500 px-8 py-4 rounded-xl font-black uppercase tracking-widest text-white transition-all shadow-[0_0_15px_rgba(168,85,247,0.4)]">
                       Enter My Guild
                     </button>
                   ) : (
-                    <button 
-                      disabled
-                      className="w-full sm:w-auto bg-slate-800/50 border border-slate-700/50 text-slate-500 px-8 py-4 rounded-xl font-black uppercase tracking-widest cursor-not-allowed text-center text-sm md:text-base flex items-center justify-center gap-2"
-                    >
-                      My Guild <span className="text-xs">(Locked)</span>
+                    <button disabled className="w-full sm:w-auto bg-slate-800/50 border border-slate-700/50 text-slate-500 px-8 py-4 rounded-xl font-black uppercase tracking-widest cursor-not-allowed">
+                      My Guild (Locked)
                     </button>
                   )}
-                  
                 </div>
               </div>
             </section>
           )}
         </div>
 
-        {/* --- INJECTED PROFILE STATS --- */}
+        {/* PROGRESS & STATS */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-10">
-          
-          {/* Level & XP Progress Bar */}
           <div className="bg-[#161B22] border border-white/10 rounded-3xl p-6 md:p-8 lg:col-span-2 shadow-lg">
             <div className="flex flex-col sm:flex-row justify-between sm:items-end mb-6 gap-2">
-              <h3 className="text-lg md:text-xl font-black flex items-center gap-2 text-white uppercase tracking-widest"><Award className="text-purple-500"/> Progression</h3>
+              <div className="flex flex-col gap-1">
+                <h3 className="text-lg md:text-xl font-black flex items-center gap-2 text-white uppercase tracking-widest">
+                  <Award className="text-purple-500"/> Progression
+                </h3>
+                <button onClick={claimDailyReward} disabled={isButtonLocked} className={`text-[10px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-lg w-fit transition-all mt-2 
+                    ${isButtonLocked 
+                      ? 'bg-slate-800 text-slate-500 border border-white/5 cursor-not-allowed' 
+                      : 'bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 border border-purple-500/30 active:scale-95 shadow-[0_0_10px_rgba(168,85,247,0.1)]'
+                    }`}
+                >
+                  {isButtonLocked 
+                    ? `⏳ Recharging (${timeLeft})` 
+                    : "✨ Claim Daily Scroll (+50 XP)"
+                  }
+                </button>
+              </div>
               <span className="text-purple-400 font-mono font-bold text-lg md:text-xl">Lvl {playerData.level}</span>
             </div>
+            
             <div className="w-full bg-[#0B0E14] h-6 rounded-full overflow-hidden mb-3 border border-white/5 shadow-inner">
               <div 
                 className="bg-gradient-to-r from-purple-600 to-blue-500 h-full shadow-[0_0_15px_rgba(168,85,247,0.6)] transition-all duration-1000" 
@@ -183,7 +243,6 @@ const Dashboard = () => {
             </div>
           </div>
 
-          {/* Badge Summary */}
           <div className="bg-[#161B22] border border-white/10 rounded-3xl p-6 md:p-8 shadow-lg">
             <h3 className="text-lg md:text-xl font-black text-white mb-6 uppercase tracking-widest">Badges</h3>
             <div className="flex flex-wrap gap-4">
@@ -196,9 +255,11 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Recent Quest Log */}
+        {/* Quest Log */}
         <div className="bg-[#161B22] border border-white/10 rounded-3xl p-6 md:p-8 shadow-lg">
-          <h3 className="text-lg md:text-xl font-black text-white mb-6 flex items-center gap-3 uppercase tracking-widest"><Clock className="text-blue-500"/> Recent Quest Log</h3>
+          <h3 className="text-lg md:text-xl font-black text-white mb-6 flex items-center gap-3 uppercase tracking-widest">
+            <Clock className="text-blue-500"/> Recent Quest Log
+          </h3>
           <div className="space-y-4">
             {playerData.isQualified ? (
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-5 bg-[#0B0E14] rounded-2xl border border-emerald-500/20 hover:border-emerald-500/50 transition-colors shadow-sm gap-4">
@@ -215,7 +276,6 @@ const Dashboard = () => {
             )}
           </div>
         </div>
-
       </main>
     </div>
   );
