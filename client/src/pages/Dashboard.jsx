@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { Award, Clock, LogOut } from 'lucide-react';
+import { Award, Clock, LogOut, ShieldAlert } from 'lucide-react';
 
 const Dashboard = () => {
   const { currentUser, logout } = useAuth(); 
@@ -179,10 +179,13 @@ const Dashboard = () => {
             </p>
           </div>
           
-          {/* Optional: A secret button that only appears for you */}
+          {/* The secret button that only appears for you */}
           {playerData.isAdmin && (
-             <button className="bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-lg font-bold text-sm transition-all shadow-lg">
-               Admin Console
+             <button 
+                onClick={() => navigate('/admin')} 
+                className="bg-red-600 hover:bg-red-500 text-white px-5 py-2.5 rounded-xl font-black uppercase tracking-widest text-xs transition-all shadow-[0_0_15px_rgba(239,68,68,0.4)] active:scale-95 flex items-center gap-2"
+             >
+               <ShieldAlert size={16} /> Admin Console
              </button>
           )}
         </header>

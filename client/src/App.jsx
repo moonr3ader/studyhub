@@ -6,6 +6,7 @@ import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 
 // Pages
+import AdminConsole from './pages/AdminConsole';
 import Landing from './pages/Landing';
 import AuthPage from './pages/AuthPage';
 import Dashboard from './pages/Dashboard';
@@ -51,6 +52,10 @@ function App() {
             <Route 
               path="/workspace/:guildId" 
               element={<ProtectedRoute><Workspace /></ProtectedRoute>} 
+            />
+            <Route 
+              path="/admin" 
+              element={<ProtectedRoute><AdminConsole /></ProtectedRoute>} 
             />
           </Routes>
 

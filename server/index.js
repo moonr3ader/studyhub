@@ -363,6 +363,157 @@ app.patch('/api/guilds/:id', async (req, res) => {
 });
 
 // =========================================================
+// ADMIN ZONE
+// =========================================================
+
+// Self-Note: Helper function to verify admin status before executing destructive actions.
+// In a production app, you would use Firebase Admin SDK to verify secure tokens here.
+const verifyAdmin = async (uid) => {
+    const user = await User.findOne({ firebaseUid: uid });
+    return user && user.isAdmin === true;
+};
+
+// Fetch ALL users in the realm
+app.get('/api/admin/users', async (req, res) => {
+    const { adminUid } = req.query;
+    try {
+        if (!(await verifyAdmin(adminUid))) return res.status(403).json({ error: "Access Denied." });
+        
+        const allUsers = await User.find().sort({ createdAt: -1 });
+        res.status(200).json(allUsers);
+    } catch (err) {
+        res.status(500).json({ error: "Failed to fetch realm data." });
+    }
+});
+
+// Forcefully disband (delete) a guild
+app.delete('/api/admin/guilds/:id', async (req, res) => {
+    const { adminUid } = req.body;
+    try {
+        if (!(await verifyAdmin(adminUid))) return res.status(403).json({ error: "Access Denied." });
+
+        const guild = await Guild.findById(req.params.id);
+        if (!guild) return res.status(404).json({ error: "Guild not found." });
+
+        // 1. Free all members from their oath
+        await User.updateMany(
+            { _id: { $in: guild.members } },
+            { $set: { isInGuild: false, guildID: null } }
+        );
+
+        // 2. Destroy the guild
+        await Guild.findByIdAndDelete(req.params.id);
+        res.status(200).json({ message: "Guild has been eradicated." });
+    } catch (err) {
+        res.status(500).json({ error: "Destruction failed." });
+    }
+});
+
+// Banish (delete) a user completely
+app.delete('/api/admin/users/:id', async (req, res) => {
+    const { adminUid } = req.body;
+    try {
+        if (!(await verifyAdmin(adminUid))) return res.status(403).json({ error: "Access Denied." });
+
+        const targetUser = await User.findById(req.params.id);
+        if (!targetUser) return res.status(404).json({ error: "User not found." });
+
+        // Self-Note: If they are the admin of a guild, we should technically disband it, 
+        // or reassign leadership. For now, we will just remove them from it.
+        if (targetUser.isInGuild && targetUser.guildID) {
+            await Guild.findByIdAndUpdate(targetUser.guildID, {
+                $pull: { members: targetUser._id }
+            });
+        }
+
+        await User.findByIdAndDelete(req.params.id);
+        res.status(200).json({ message: "Adventurer has been banished from reality." });
+    } catch (err) {
+        res.status(500).json({ error: "Banishment failed." });
+    }
+});
+
+// =========================================================
+// ADMIN ZONE (GOD MODE) - CRUD EXTENSION
+// =========================================================
+
+// --- ADMIN USER MANAGEMENT ---
+
+// UPDATE a User
+app.patch('/api/admin/users/:id', async (req, res) => {
+    const { adminUid, username, xp, isAdmin, isQualified } = req.body;
+    try {
+        if (!(await verifyAdmin(adminUid))) return res.status(403).json({ error: "Access Denied." });
+        
+        const updateData = { username, xp, isAdmin, isQualified };
+        if (xp !== undefined) updateData.level = calculateLevel(xp); // Auto-adjust level if XP changes
+
+        const updatedUser = await User.findByIdAndUpdate(req.params.id, updateData, { new: true });
+        res.status(200).json(updatedUser);
+    } catch (err) { res.status(500).json({ error: "Failed to update user." }); }
+});
+
+// CREATE a User manually (Self-Note: Only creates DB record. Firebase Auth is separate.)
+app.post('/api/admin/users', async (req, res) => {
+    const { adminUid, username, firebaseUid, xp } = req.body;
+    try {
+        if (!(await verifyAdmin(adminUid))) return res.status(403).json({ error: "Access Denied." });
+        
+        const newUser = new User({
+            username: username || "Manual_Entry",
+            firebaseUid: firebaseUid || `manual_${Date.now()}`, // Fallback if no Firebase ID
+            xp: xp || 0,
+            level: calculateLevel(xp || 0),
+            isQualified: true
+        });
+        await newUser.save();
+        res.status(201).json(newUser);
+    } catch (err) { res.status(500).json({ error: "Failed to create user." }); }
+});
+
+
+// --- ADMIN GUILD MANAGEMENT ---
+
+// UPDATE a Guild
+app.patch('/api/admin/guilds/:id', async (req, res) => {
+    const { adminUid, guildName, guildDescription } = req.body;
+    try {
+        if (!(await verifyAdmin(adminUid))) return res.status(403).json({ error: "Access Denied." });
+        
+        const updatedGuild = await Guild.findByIdAndUpdate(
+            req.params.id, 
+            { guildName, guildDescription }, 
+            { new: true }
+        );
+        res.status(200).json(updatedGuild);
+    } catch (err) { res.status(500).json({ error: "Failed to update guild." }); }
+});
+
+// CREATE a Guild manually
+app.post('/api/admin/guilds', async (req, res) => {
+    const { adminUid, guildName, guildDescription, targetAdminId } = req.body;
+    try {
+        if (!(await verifyAdmin(adminUid))) return res.status(403).json({ error: "Access Denied." });
+        
+        // Self-Note: Allows admin to assign a guild to a specific user ID, or themselves
+        const creatorId = targetAdminId || (await User.findOne({ firebaseUid: adminUid }))._id;
+
+        const newGuild = new Guild({
+            guildName: guildName || "System_Forged_Guild",
+            guildDescription: guildDescription || "Forged by the Gods.",
+            adminID: creatorId,
+            members: [creatorId]
+        });
+        await newGuild.save();
+        
+        // Ensure the assigned leader knows they are in a guild now
+        await User.findByIdAndUpdate(creatorId, { isInGuild: true, guildID: newGuild._id });
+
+        res.status(201).json(newGuild);
+    } catch (err) { res.status(500).json({ error: "Failed to force-create guild." }); }
+});
+
+// =========================================================
 // SOCKET.IO (REAL-TIME ROOMS)
 // =========================================================
 
