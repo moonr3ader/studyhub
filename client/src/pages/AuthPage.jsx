@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import SocialLogin from '../components/SocialLogin'; // <-- IMPORT THE COMPONENT HERE
 
 const AuthPage = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -10,7 +11,6 @@ const AuthPage = () => {
   const { login, signup } = useAuth();
   const navigate = useNavigate();
   
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -27,8 +27,6 @@ const AuthPage = () => {
       }
     } catch (err) {
       console.error("FIREBASE REJECTION:", err.code, err.message);
-      // setError("Failed to authenticate. Check your scroll (credentials)!");
-      // show the specific error to the user on the screen
       if (err.code === 'auth/invalid-credential') {
         setError("Incorrect scroll address or secret sigil (Wrong email/password).");
       } else if (err.code === 'auth/too-many-requests') {
@@ -40,7 +38,6 @@ const AuthPage = () => {
   };
 
   return (
-    /* outer div to center everything on the screen */
     <div className="min-h-screen bg-[#0B0E14] flex flex-col items-center justify-center p-6 text-slate-200">
       
       {/* Branding */}
@@ -57,25 +54,34 @@ const AuthPage = () => {
           {isLogin ? 'Welcome Back' : 'Join the Guild'}
         </h2>
 
+        {/* ERROR MESSAGE DISPLAY */}
+        {error && (
+          <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-xl text-red-400 text-sm font-semibold text-center">
+            {error}
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="flex flex-col gap-2">
             <label className="text-xs font-bold uppercase tracking-widest text-slate-500">Scroll Address</label>
             <input 
-              type="email" value={email} className="w-full bg-[#0B0E14] border border-slate-800 rounded-xl p-3 outline-none focus:border-purple-500 transition-all" placeholder="email@domain.com" onChange={(e) => setEmail(e.target.value)}
+              type="email" value={email} className="w-full bg-[#0B0E14] border border-slate-800 rounded-xl p-3 outline-none focus:border-purple-500 transition-all text-white" placeholder="email@domain.com" onChange={(e) => setEmail(e.target.value)}
             />
           </div>
 
           <div className="flex flex-col gap-2">
             <label className="text-xs font-bold uppercase tracking-widest text-slate-500">Secret Sigil</label>
             <input 
-              type="password" value={password} className="w-full bg-[#0B0E14] border border-slate-800 rounded-xl p-3 outline-none focus:border-purple-500 transition-all" placeholder="••••••••" onChange={(e) => setPassword(e.target.value)}
+              type="password" value={password} className="w-full bg-[#0B0E14] border border-slate-800 rounded-xl p-3 outline-none focus:border-purple-500 transition-all text-white" placeholder="••••••••" onChange={(e) => setPassword(e.target.value)}
             />
           </div>
 
-          <button className="w-full bg-purple-600 hover:bg-purple-500 py-4 rounded-xl font-black uppercase tracking-widest mt-4 transition-transform active:scale-95">
+          <button className="w-full bg-purple-600 hover:bg-purple-500 py-4 rounded-xl font-black uppercase tracking-widest mt-4 transition-transform active:scale-95 shadow-lg shadow-purple-500/20 text-white">
             {isLogin ? 'Enter' : 'Forge'}
           </button>
         </form>
+
+        <SocialLogin setError={setError} />
 
         <div className="mt-8 text-center">
           <button onClick={() => setIsLogin(!isLogin)} className="text-sm text-slate-500 hover:text-purple-400 font-semibold transition-colors">

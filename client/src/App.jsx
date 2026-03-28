@@ -9,6 +9,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import AdminConsole from './pages/AdminConsole';
 import Landing from './pages/Landing';
 import AuthPage from './pages/AuthPage';
+import VerifyEmail from './pages/VerifyEmail';
 import Dashboard from './pages/Dashboard';
 import PreliminaryQuest from './pages/PreliminaryQuest';
 import GuildHub from './pages/GuildHub';
@@ -29,6 +30,10 @@ function App() {
             <Route path="/auth" element={<AuthPage />} />
 
             {/* PRIVATE ROUTES (Protected by the Bouncer) */}
+            <Route 
+              path="/verify-email" 
+              element={<ProtectedRoute><VerifyEmail /></ProtectedRoute>} 
+            />
             <Route 
               path="/dashboard" 
               element={<ProtectedRoute><Dashboard /></ProtectedRoute>} 
