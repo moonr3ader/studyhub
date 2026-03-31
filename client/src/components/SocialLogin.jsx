@@ -7,19 +7,26 @@ import { Chrome, Github } from 'lucide-react';
 const SocialLogin = ({ setError }) => {
   const { loginWithGoogle, loginWithGithub } = useAuth();
   const navigate = useNavigate();
-
+  
   const handleSocialClick = async (action) => {
     try {
       setError(''); // Clear any old errors
-      const isVerified = await action();
+      
+      // Now we receive both the verification status AND the new user status
+      const { isVerified, isNewUser } = await action();
       
       if (isVerified) {
-        navigate('/dashboard');
+        if (isNewUser) {
+          // It's their first time! Send them to the quest to create their DB record.
+          navigate('/quest'); 
+        } else {
+          // They are a returning veteran. Send them to the Hub.
+          navigate('/dashboard'); 
+        }
       }
     } catch (err) {
       console.error("SOCIAL AUTH REJECTION:", err);
       
-      // Translate the ugly Firebase error codes into human-readable warnings
       if (err.code === 'auth/account-exists-with-different-credential') {
         setError("An account already exists with this email. Please log in using your password instead.");
       } else if (err.code === 'auth/popup-closed-by-user') {

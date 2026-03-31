@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { Award, Clock, LogOut, ShieldAlert } from 'lucide-react';
+import { Award, Clock, LogOut, ShieldAlert, Trophy, Map, Settings } from 'lucide-react';
 
 const Dashboard = () => {
   const { currentUser, logout } = useAuth(); 
@@ -314,6 +314,40 @@ const Dashboard = () => {
             )}
           </div>
         </div>
+        
+        {/* --- REALM FACILITIES (QUICK NAVIGATION) --- */}
+        <section className="mt-10">
+          <h2 className="text-xl font-black text-white mb-6 uppercase tracking-widest flex items-center gap-2">
+            <Map className="text-purple-500" size={24} /> Realm Facilities
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Quest Board Card */}
+            <div onClick={() => navigate('/quest')}
+              className="bg-[#161B22] border border-white/5 hover:border-purple-500/50 rounded-3xl p-6 cursor-pointer group transition-all hover:shadow-[0_0_30px_rgba(168,85,247,0.15)] relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/5 rounded-full blur-3xl group-hover:bg-purple-500/10 transition-colors"></div>
+              <Map className="text-purple-500 w-10 h-10 mb-4 group-hover:scale-110 transition-transform duration-300" />
+              <h3 className="text-xl font-black text-white uppercase tracking-widest mb-2">Quest Board</h3>
+              <p className="text-slate-400 text-sm leading-relaxed">View daily bounties, special events, and claim your hard-earned XP.</p>
+            </div>
+            {/* Hall of Fame Card */}
+            <div onClick={() => navigate('/leaderboard')}
+              className="bg-[#161B22] border border-white/5 hover:border-yellow-500/50 rounded-3xl p-6 cursor-pointer group transition-all hover:shadow-[0_0_30px_rgba(234,179,8,0.15)] relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-yellow-500/5 rounded-full blur-3xl group-hover:bg-yellow-500/10 transition-colors"></div>
+              <Trophy className="text-yellow-500 w-10 h-10 mb-4 group-hover:scale-110 transition-transform duration-300" />
+              <h3 className="text-xl font-black text-white uppercase tracking-widest mb-2">Hall of Fame</h3>
+              <p className="text-slate-400 text-sm leading-relaxed">See how you rank against the greatest adventurers and guilds in the realm.</p>
+            </div>
+            {/* Settings Card */}
+            <div onClick={() => navigate('/settings')}
+              className="bg-[#161B22] border border-white/5 hover:border-slate-400/50 rounded-3xl p-6 cursor-pointer group transition-all hover:shadow-[0_0_30px_rgba(148,163,184,0.15)] relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-slate-500/5 rounded-full blur-3xl group-hover:bg-slate-500/10 transition-colors"></div>
+              <Settings className="text-slate-400 w-10 h-10 mb-4 group-hover:scale-110 transition-transform duration-300" />
+              <h3 className="text-xl font-black text-white uppercase tracking-widest mb-2">Preferences</h3>
+              <p className="text-slate-400 text-sm leading-relaxed">Manage your account, update your sigil, and configure your UI settings.</p>
+            </div>
+          </div>
+        </section>
+
       </main>
     </div>
   );

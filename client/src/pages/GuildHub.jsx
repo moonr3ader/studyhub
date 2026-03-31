@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Shield, Users, Plus, Swords, X } from 'lucide-react';
+import { Shield, Users, Plus, Swords, X, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { useNavigate } from 'react-router-dom'; // Added this import
+import { useNavigate } from 'react-router-dom';
 
 const GuildHub = () => {
   const { currentUser } = useAuth();
@@ -87,7 +87,12 @@ const GuildHub = () => {
   return (
     <div className="min-h-screen bg-[#0B0E14] text-slate-200 p-10 relative">
       <div className="max-w-6xl mx-auto">
-        
+
+        {/* Navigation */}
+        <button onClick={() => navigate('/dashboard')} className="mb-8 flex items-center gap-2 text-slate-500 hover:text-white transition-colors font-bold uppercase text-xs tracking-widest">
+          <ArrowLeft size={16} /> Back to Dashboard
+        </button>
+
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-end mb-12 border-b border-white/10 pb-6 gap-6">
           <div>

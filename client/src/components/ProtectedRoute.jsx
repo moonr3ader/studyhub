@@ -10,13 +10,19 @@ const ProtectedRoute = ({ children }) => {
     return <Navigate to="/" replace />;
   }
 
-  // --- THE DEVELOPER BYPASS ---
-  // Add your fake emails or testing emails to this array
-  const legacyEmails = ["novice@guild.dev", "warrior@guild.com", "admin@guilddev.com"];
-  const isLegacyUser = currentUser?.email && legacyEmails.includes(currentUser.email);
+  // --- THE DEVELOPER WILDCARD BYPASS ---
+  // 1. Check if it's a specific admin email
+  const adminEmails = ["admin@guild.com"]; 
+  const isAdmin = currentUser?.email && adminEmails.includes(currentUser.email);
+  
+  // 2. Check if it's a dummy testing account (ends with @test.com or @dummy.com)
+  const isDummyAccount = currentUser?.email && (
+    currentUser.email.endsWith('@test.com') || 
+    currentUser.email.endsWith('@dummy.com')
+  );
 
-  // If they are NOT verified, and NOT a legacy user, trap them at the Verify page
-  if (!currentUser.emailVerified && !isLegacyUser) {
+  // If they are NOT verified, NOT an admin, and NOT a dummy account, trap them.
+  if (!currentUser.emailVerified && !isAdmin && !isDummyAccount) {
     // Prevent an infinite redirect loop if they are already on the verify page
     if (location.pathname !== '/verify-email') {
       return <Navigate to="/verify-email" replace />;

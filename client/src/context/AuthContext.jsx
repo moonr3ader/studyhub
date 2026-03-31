@@ -1,14 +1,15 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { auth } from "../firebase";
 import { 
-  onAuthStateChanged, 
+  onAuthStateChanged,
   createUserWithEmailAndPassword, 
   signInWithEmailAndPassword, 
-  signOut,
-  signInWithPopup, 
+  signOut, signInWithPopup, 
   GoogleAuthProvider, 
   GithubAuthProvider, 
-  sendEmailVerification 
+  sendEmailVerification, 
+  getAdditionalUserInfo, 
+  updatePassword 
 } from "firebase/auth";
 
 const AuthContext = createContext();
@@ -34,6 +35,11 @@ export const AuthProvider = ({ children }) => {
     return signOut(auth);
   };
 
+  const changePassword = (newPassword) => {
+    if (!currentUser) throw new Error("No user logged in.");
+    return updatePassword(currentUser, newPassword);
+  };
+
   // ==========================================
   // 2. SOCIAL AUTH & VERIFICATION
   // ==========================================
@@ -54,7 +60,12 @@ export const AuthProvider = ({ children }) => {
     const provider = new GoogleAuthProvider();
     try {
       const result = await signInWithPopup(auth, provider);
-      return await handleSocialAuth(result.user);
+      const isVerified = await handleSocialAuth(result.user);
+      
+      // Self-Note: Check if this is their first time ever logging in
+      const details = getAdditionalUserInfo(result);
+      return { isVerified, isNewUser: details?.isNewUser };
+      
     } catch (error) {
       console.error("Google Auth Failed", error);
       throw error;
@@ -65,7 +76,11 @@ export const AuthProvider = ({ children }) => {
     const provider = new GithubAuthProvider();
     try {
       const result = await signInWithPopup(auth, provider);
-      return await handleSocialAuth(result.user);
+      const isVerified = await handleSocialAuth(result.user);
+      
+      const details = getAdditionalUserInfo(result);
+      return { isVerified, isNewUser: details?.isNewUser };
+      
     } catch (error) {
       console.error("GitHub Auth Failed", error);
       throw error;
@@ -84,7 +99,7 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   // Make sure all functions are exposed here!
-  const value = {currentUser, signup, login, logout, loginWithGoogle, loginWithGithub};
+  const value = {currentUser, signup, login, logout, loginWithGoogle, loginWithGithub, changePassword};
 
   return (
     <AuthContext.Provider value={value}>{!loading && children}</AuthContext.Provider>

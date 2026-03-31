@@ -31,28 +31,48 @@ mongoose.connect(process.env.MONGO_URI)
 // Formula: Level = floor(sqrt(XP / 100)) + 1
 const calculateLevel = (totalXp) => Math.floor(Math.sqrt(totalXp / 100)) + 1;
 
+const questionSchema = new mongoose.Schema({
+  scenario: String,
+  options: [{
+    id: String, // 'A', 'B', 'C'
+    text: String,
+    isCorrect: Boolean
+  }],
+  failureMessage: String
+});
+const Question = mongoose.model('Question', questionSchema);
+
 // =========================================================
 // USER ROUTES
 // =========================================================
 
 // Handle quest completion & initial registration
 app.post('/api/user/qualify', async (req, res) => {
-    const { uid, username, email } = req.body;
+    const { uid, email, username } = req.body;
     try {
-        const user = await User.findOneAndUpdate(
-            { firebaseUid: uid },
-            { 
-                firebaseUid: uid,
-                username: username,
-                email: email,
-                isQualified: true, 
-                $inc: { xp: 100 } 
-            },
-            { upsert: true, new: true }
-        );
-        res.status(200).json({ success: true, user });
-    } catch (error) {
-        res.status(500).json({ error: "Qualification failed" });
+        // 1. COLLISION CHECK: Does this exact name exist already?
+        const existingUser = await User.findOne({ 
+            username: new RegExp(`^${username}$`, 'i') 
+        });
+
+        if (existingUser) {
+            return res.status(400).json({ error: "That name is already claimed by another adventurer." });
+        }
+
+        // 2. Create the User (They passed the check!)
+        const newUser = new User({
+            firebaseUid: uid,
+            email: email,
+            username: username,
+            isQualified: true,
+            xp: 100, // Reward for passing the trial!
+            level: 1
+        });
+        
+        await newUser.save();
+        res.status(200).json({ message: "Identity forged!", user: newUser });
+    } catch (err) {
+        res.status(500).json({ error: "Failed to forge identity" });
     }
 });
 
@@ -84,6 +104,22 @@ app.post('/api/user/award-xp', async (req, res) => {
     }
 });
 
+// Get a random Trial Question
+app.get('/api/questions/random', async (req, res) => {
+    try {
+        // Grab exactly 1 random document from the Questions collection
+        const randomQuestion = await Question.aggregate([{ $sample: { size: 1 } }]);
+        
+        if (randomQuestion.length === 0) {
+            return res.status(404).json({ error: "No trials found in the archives." });
+        }
+        
+        res.status(200).json(randomQuestion[0]);
+    } catch (err) {
+        res.status(500).json({ error: "Failed to summon a trial." });
+    }
+});
+
 // Fetch top 10 players by XP
 app.get('/api/users/leaderboard', async (req, res) => {
     try {
@@ -102,6 +138,35 @@ app.get('/api/user/:uid', async (req, res) => {
         res.status(200).json(user);
     } catch (err) {
         res.status(500).json({ error: "Profile fetch failed" });
+    }
+});
+
+// Update specific profile by UID (User changing their own settings)
+app.patch('/api/user/:uid', async (req, res) => {
+    const { username } = req.body;
+    try {
+        // 1. Collision Check: Does this exact name exist already?
+        // Using a regex to make the check case-insensitive (e.g., "Admin" clashes with "admin")
+        const existingUser = await User.findOne({ 
+            username: new RegExp(`^${username}$`, 'i') 
+        });
+
+        // If a user exists with this name AND their UID doesn't match the requester's UID
+        if (existingUser && existingUser.firebaseUid !== req.params.uid) {
+            return res.status(400).json({ error: "That name is already claimed by another adventurer." });
+        }
+
+        // 2. Safe to Update
+        const updatedUser = await User.findOneAndUpdate(
+            { firebaseUid: req.params.uid },
+            { username: username },
+            { new: true }
+        );
+        
+        if (!updatedUser) return res.status(404).json({ error: "User not found" });
+        res.status(200).json({ message: "Profile updated successfully!", user: updatedUser });
+    } catch (err) {
+        res.status(500).json({ error: "Failed to update profile" });
     }
 });
 
