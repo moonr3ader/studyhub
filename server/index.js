@@ -8,6 +8,7 @@ const { Server } = require('socket.io');
 const User = require('./models/User');
 const Guild = require('./models/Guild');
 
+const axios = require('axios');
 const app = express();
 const server = http.createServer(app);
 
@@ -21,6 +22,8 @@ const io = new Server(server, {
 
 app.use(cors());
 app.use(express.json());
+
+
 
 // --- DB CONNECTION ---
 mongoose.connect(process.env.MONGO_URI)
@@ -427,6 +430,44 @@ app.patch('/api/guilds/:id', async (req, res) => {
     }
 });
 
+// PUT /api/guilds/:guildId/save
+app.put('/api/guilds/:guildId/save', async (req, res) => {
+  try {
+    const { guildId } = req.params;
+    const { code } = req.body;
+
+    // Assuming you have a Guild model. Adjust to match your actual schema!
+    // This updates the 'savedCode' field for the specific guild.
+    await Guild.findByIdAndUpdate(guildId, { savedCode: code });
+    
+    res.status(200).json({ message: 'Code saved to the Forge successfully.' });
+  } catch (error) {
+    console.error('Error saving code:', error);
+    res.status(500).json({ error: 'Failed to save code to database' });
+  }
+});
+
+// GET /api/guilds/:guildId
+app.get('/api/guilds/:guildId', async (req, res) => {
+  try {
+    const { guildId } = req.params;
+
+    // Fetch the guild from MongoDB (Ensure 'Guild' matches your Mongoose model name)
+    const guild = await Guild.findById(guildId); 
+    
+    if (!guild) {
+      return res.status(404).json({ error: 'Guild not found' });
+    }
+
+    // Send the saved code back to the client
+    res.status(200).json({ savedCode: guild.savedCode });
+    
+  } catch (error) {
+    console.error('Error fetching guild code:', error);
+    res.status(500).json({ error: 'Failed to fetch code from database' });
+  }
+});
+
 // =========================================================
 // ADMIN ZONE
 // =========================================================
@@ -585,11 +626,83 @@ app.post('/api/admin/guilds', async (req, res) => {
 const roomMemory = {}; 
 
 io.on('connection', (socket) => {
-    socket.on('join_guild_room', (guildId) => {
+    console.log('A user connected:', socket.id);
+
+    // FIX 1: Added curly braces to destructure the object sent from frontend
+    socket.on('join_guild_room', ({ guildId, username }) => {
         socket.join(guildId); 
+
+        // Save the data directly to the socket object
+        socket.data.guildId = guildId;
+        socket.data.username = username;
+
+        // Create the System message
+        const systemMessage = {
+            sender: 'System',
+            text: `${username} has entered the Forge.`,
+            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            isSystem: true
+        };
+
+        // Initialize room memory if it doesn't exist
         if (!roomMemory[guildId]) roomMemory[guildId] = [];
+        
+        // Push the system message to memory so late joiners see it
+        roomMemory[guildId].push(systemMessage);
+        if (roomMemory[guildId].length > 50) roomMemory[guildId].shift();
+
+        // Broadcast to everyone else in the room
+        socket.to(guildId).emit('receive_message', systemMessage);
+
+        // Send chat history to the newly joined user
         socket.emit('message_history', roomMemory[guildId]);
     });
+
+    // FIX 2: Combined the two 'leave_guild_room' listeners into one
+    socket.on('leave_guild_room', (guildId) => {
+        socket.leave(guildId);
+        
+        if (socket.data.username) {
+            const systemMessage = {
+                sender: 'System',
+                text: `${socket.data.username} has left the Forge.`,
+                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                isSystem: true
+            };
+            
+            // Save to history and broadcast
+            if (roomMemory[guildId]) {
+                roomMemory[guildId].push(systemMessage);
+                if (roomMemory[guildId].length > 50) roomMemory[guildId].shift();
+            }
+            socket.to(guildId).emit('receive_message', systemMessage);
+        }
+
+        // Memory cleanup: If room is empty, delete its memory
+        const roomSize = io.sockets.adapter.rooms.get(guildId)?.size || 0;
+        if (roomSize === 0) delete roomMemory[guildId]; 
+    });
+
+    // 3. Handle accidental disconnects (closed tab, lost wifi)
+    socket.on('disconnect', () => {
+        const { guildId, username } = socket.data;
+        if (guildId && username) {
+            const systemMessage = {
+                sender: 'System',
+                text: `${username} disconnected.`,
+                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                isSystem: true
+            };
+            
+            if (roomMemory[guildId]) {
+                roomMemory[guildId].push(systemMessage);
+                if (roomMemory[guildId].length > 50) roomMemory[guildId].shift();
+            }
+            socket.to(guildId).emit('receive_message', systemMessage);
+        }
+    });
+
+    // --- STANDARD CHAT AND CODE SYNCS ---
 
     socket.on('code_update', ({ guildId, code }) => {
         socket.to(guildId).emit('receive_code', code);
@@ -599,15 +712,11 @@ io.on('connection', (socket) => {
         if (!roomMemory[guildId]) roomMemory[guildId] = [];
         roomMemory[guildId].push(messageData);
         if (roomMemory[guildId].length > 50) roomMemory[guildId].shift(); 
+        
         socket.to(guildId).emit('receive_message', messageData);
     });
 
-    socket.on('leave_guild_room', (guildId) => {
-        socket.leave(guildId);
-        const roomSize = io.sockets.adapter.rooms.get(guildId)?.size || 0;
-        if (roomSize === 0) delete roomMemory[guildId]; 
-    });
-
+    // Memory cleanup for total disconnects
     socket.on('disconnecting', () => {
         socket.rooms.forEach(room => {
             if (room !== socket.id) {
@@ -616,6 +725,71 @@ io.on('connection', (socket) => {
             }
         });
     });
+});
+
+// =========================================================
+// ENDPOINT TO HANDLE COMPILATION REQUEST
+// =========================================================
+
+// POST /api/execute
+app.post('/api/execute', async (req, res) => {
+  const { code, languageId } = req.body;
+
+  const options = {
+    method: 'POST',
+    url: 'https://judge0-ce.p.rapidapi.com/submissions',
+    params: { base64_encoded: 'false', fields: '*' },
+    headers: {
+      'content-type': 'application/json',
+      'Content-Type': 'application/json',
+      'X-RapidAPI-Key': process.env.JUDGE0_API_KEY,
+      'X-RapidAPI-Host': 'judge0-ce.p.rapidapi.com'
+    },
+    data: {
+      language_id: languageId,
+      source_code: code
+    }
+  };
+
+  try {
+    // 1. Send code to Judge0
+    const submission = await axios.request(options);
+    const token = submission.data.token;
+    
+    // 2. Poll Judge0 for the result (will take a moment to compile/run)
+    let result;
+    let statusId = 1; // 1 = In Queue, 2 = Processing
+    
+    while (statusId === 1 || statusId === 2) {
+        // Wait 500ms between checks
+        await new Promise(resolve => setTimeout(resolve, 500)); 
+
+        const response = await axios.get(
+        `https://judge0-ce.p.rapidapi.com/submissions/${token}?base64_encoded=false`,
+        {
+          headers: {
+            'X-RapidAPI-Key': process.env.JUDGE0_API_KEY,
+            'X-RapidAPI-Host': 'judge0-ce.p.rapidapi.com'
+          }
+        }
+      );
+      result = response.data;
+      statusId = result.status.id;
+    }
+
+    // 3. Send the final output back to the frontend
+    res.json({
+      stdout: result.stdout,
+      stderr: result.stderr,
+      compile_output: result.compile_output,
+      time: result.time,
+      memory: result.memory
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Failed to execute code' });
+  }
 });
 
 // --- INIT ---

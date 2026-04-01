@@ -13,7 +13,7 @@ import VerifyEmail from './pages/VerifyEmail';
 import Dashboard from './pages/Dashboard';
 import PreliminaryQuest from './pages/PreliminaryQuest';
 import GuildHub from './pages/GuildHub';
-import Leaderboard from './pages/Leaderboard'; // <-- Added Leaderboard
+import Leaderboard from './pages/Leaderboard';
 import Workspace from './pages/Workspace';
 import MyGuild from './pages/MyGuild';
 import Settings from './pages/Settings';

@@ -1,74 +1,38 @@
-# GuildDev 10-Day Sprint Plan (Rapid Deployment)
+comparing your current codebase to the full requirements outlined in the GuildDev App Report, there are a few major pieces still missing to bring the platform to completion. Here is the breakdown of what needs to be built next:
 
-## Phase 1: The Foundation (Days 1-2)
+1. Code Execution (The Judge0 API)
+Right now, your textarea acts as a live notepad, but it cannot actually compile or run the code.
 
-### Day 1: Project Scaffolding & Authentication
-- **Backend Setup**: Initialize a Node/Express server. Install `cors`, `dotenv`, `mongoose`, and `firebase-admin`.
-- **Frontend Setup**: Initialize a React app using Vite (faster than CRA). Install `firebase`, `axios`, and `react-router-dom`.
-- **Firebase Integration**: Set up a Firebase project and enable Email/Password login. Implement the Login/Sign-up UI on the frontend.
-- **Database Connection**: Connect to MongoDB Atlas and create a basic `User` schema (`email`, `username`, `isQualified`, `xp`, `level`).
+The Missing Piece: The report explicitly requires the integration of the Judge0 API.
 
-### Day 2: User Profiles & The Preliminary Stage
-- **Dashboard UI**: Create a dark-mode dashboard shell using Tailwind CSS. 
-- **Preliminary Module**: Build a "Level 0" quest page. This is a simple coding prompt (e.g., "Return the sum of two numbers").
-- **Qualification Logic**: Create a backend route that updates `isQualified: true` in MongoDB once a user completes this initial task.
+The Goal: This will act as a sandbox to allow users to securely compile and run their code directly inside the browser for multiple programming languages.
 
----
+2. Live Cursors & Advanced Collaboration
+While your text syncs perfectly, true real-time IDEs show exactly where teammates are typing.
 
-## Phase 2: Collaboration & Real-Time Sync (Days 3-5)
+The Missing Piece: "Live cursor syncing" is explicitly listed as a key deliverable for the Guild Workspace. The system features comparison also emphasizes "live cursors" as a core capability.
 
-### Day 3: Guild Infrastructure
-- **Guild Schema**: Create a `Guild` schema in MongoDB (`name`, `members[]`, `projectState`).
-- **Joining Logic**: Build the "Adventurer’s Hub" where users can browse existing guilds or create a new one.
-- **Socket.io Setup**: Initialize Socket.io on the server. Test a basic "Hello World" connection between the client and server.
+The Goal: Upgrading from a basic <textarea> to a more robust code editor library (like CodeMirror or Monaco Editor) so you can track and render individual cursor coordinates for each teammate.
 
-### Day 4: The Shared Code Editor
-- **Editor Integration**: Install `@monaco-editor/react`. 
-- **Real-Time Sync**: Implement Socket.io "rooms" based on the `GuildID`. Use the `onChange` event in Monaco to emit code updates to the room.
-- **Cursor Presence**: (Optional for MVP) Show simple "X is typing..." indicators to save time over full cursor sync.
+3. Data Persistence (Saving the Code)
+Currently, if all users leave the room, the code in the useState disappears.
 
-### Day 5: Code Execution (Judge0)
-- **API Integration**: Connect the "Run" button to the Judge0 API.
-- **Execution Workflow**: Send the editor content to Judge0, receive the stdout/stderr, and display it in a terminal-style component below the editor.
-- **Testing**: Ensure code runs correctly for at least one language (e.g., JavaScript).
+The Missing Piece: The sprint plan requires "Code saving".
 
----
+The Goal: You need to integrate your MongoDB database to actively save the guild's codebase. When a user refreshes or joins later, the workspace should fetch the latest saved draft from the database, not just rely on active Socket connections.
 
-## Phase 3: Gamification & RPG Elements (Days 6-8)
+4. Challenges, Gamification, and XP (Sprint 4)
+The workspace is currently an open sandbox, but the core of GuildDev is its gamified, hackathon-style progression.
 
-### Day 6: XP & Leveling Logic
-- **Backend Rewards**: Create a utility function to calculate XP rewards based on completed tasks.
-- **Progression System**: Implement logic to "level up" users when they hit XP milestones (e.g., 100 XP = Level 2).
-- **Frontend Feedback**: Add a glowing XP bar to the navigation or sidebar that updates in real-time.
+The Missing Piece: The "Events System + Gamification" module.
 
-### Day 7: Badge & Achievement System
-- **Badge Assets**: Source or create 4-5 RPG-themed icons (e.g., "Code Squire," "Bug Hunter").
-- **Achievement Logic**: Trigger a "Badge Earned" modal when specific database flags are met (e.g., first guild joined, 5 code executions).
+The Goal: The workspace needs a UI to fetch active "Challenges" and a Submit Code button. When submitted, the code must be validated against test cases, and if it passes, the system must award XP, distribute badges, and update the global Leaderboard.
 
-### Day 8: UI/UX Polish & Visual Feedback
-- **Theme Injection**: Apply consistent charcoal backgrounds (`#0B0E14`) and neon accents across all pages.
-- **Animations**: Use `framer-motion` for subtle transitions when menus open or levels increase.
-- **Responsive Check**: Ensure the editor and dashboard are usable on laptop and tablet screens.
+5. The Progression Gate (Preliminary Stage & Guild Approval)
+If you haven't built the surrounding pages yet, the report notes a strict flow before a user can even see this Workspace.
 
----
+The Missing Piece: The guided preliminary stage tutorial and the guild application workflows.
 
-## Phase 4: Quality Assurance & Launch (Days 9-10)
+The Goal: Users must first complete a tutorial to earn a baseline badge. Only then can they submit a "Join Request" to a guild, which requires Admin approval before they can enter the Workspace.
 
-### Day 9: Bug Squashing & Optimization
-- **End-to-End Testing**: Walk through the user journey: Sign up -> Complete Preliminary Quest -> Create Guild -> Edit Code -> Run Code.
-- **Error Handling**: Add "Try/Catch" blocks and user-facing alerts for failed API calls or disconnected sockets.
-- **Environment Variables**: Move all keys (Firebase, MongoDB, Judge0) to a `.env` file and ensure they are not committed to Git.
-
-### Day 10: Deployment
-- **Database**: Perform a final cleanup of test data in MongoDB Atlas.
-- **Backend Deployment**: Push the server to **Render** or **Railway**. Configure CORS to allow your frontend domain.
-- **Frontend Deployment**: Push the React app to **Vercel**.
-- **Documentation**: Finalize the `README.md` and project report based on the actual implemented features.
-
----
-
-## 🛑 Vital "Don't Do" List (To Stay on Schedule)
-1. **NO** Custom Authentication: Stick with Firebase; do not build your own JWT/Salt system.
-2. **NO** Kubernetes/Docker: Deploy directly to PaaS providers (Vercel/Render) to avoid dev-ops overhead.
-3. **NO** Native Mobile App: Keep it as a PWA or responsive web app.
-4. **NO** Complex Backend Scalability: Focus on 5-10 concurrent users for the demo rather than 10,000.
+You've built the hardest technical hurdle (the WebSockets). Which of these missing pieces—like integrating Judge0 for code execution, upgrading to live cursors, or wiring up the MongoDB database—would you like to tackle next for Phase 5?
