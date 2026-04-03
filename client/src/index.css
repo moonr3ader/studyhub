@@ -9,3 +9,30 @@ body {
   padding: 0;
   background-color: #0B0E14;
 }
+
+/* --- YJS MONACO CURSOR FIXES FOR TAILWIND --- */
+
+/* Shows what the other user is currently highlighting */
+.yRemoteSelection {
+  background-color: rgba(250, 129, 0, 0.2); 
+}
+
+/* The vertical cursor line */
+.yRemoteSelectionHead {
+  position: absolute;
+  border-left: 2px solid; /* FIX 1: Override Tailwind's 0px reset */
+  box-sizing: border-box;
+  height: 100%;
+  z-index: 99 !important;
+}
+
+/* The colored dot at the top of the cursor */
+.yRemoteSelectionHead::after {
+  position: absolute;
+  content: ''; /* FIX 2: Required for pseudo-elements to render */
+  border: 4px solid;
+  border-color: inherit; /* Pulls the specific user's color from the parent */
+  border-radius: 4px;
+  left: -4px;
+  top: -4px;
+}

@@ -48,12 +48,20 @@ const UserSchema = new mongoose.Schema({
         type: Date,
         default: null 
     },
-    // Self-Note: Grants ultimate authority over the GuildDev platform.
-    // Use this to render special UI elements and bypass standard game rules.
+    // Grants ultimate authority over the GuildDev platform, and
+    // to render special UI elements and bypass standard game rules.
     isAdmin: { 
         type: Boolean, 
         default: false 
-    }
+    },
+    userXP: {
+        type: Number,
+        default: 0
+    },
+    badges: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Badge'
+    }]
 });
 
 module.exports = mongoose.model('User', UserSchema);

@@ -1,14 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { io } from 'socket.io-client';
 import { useAuth } from '../context/AuthContext';
 import { Terminal, Users, LogOut, Play, Loader, Save } from 'lucide-react'; 
 import axios from 'axios';
 import Editor from '@monaco-editor/react';
+import * as Y from 'yjs';
+import { WebsocketProvider } from 'y-websocket';
+import { MonacoBinding } from 'y-monaco';
 
 const socket = io('http://localhost:5000'); 
 
-// NEW: Language Mapping (Judge0 ID <-> Monaco Language)
 const LANGUAGES = {
   javascript: { name: 'Node.js', judgeId: 93, monaco: 'javascript', defaultCode: 'console.log("Welcome to the Guild Forge!");' },
   python: { name: 'Python', judgeId: 71, monaco: 'python', defaultCode: 'print("Welcome to the Guild Forge!")' },
@@ -21,55 +23,71 @@ const Workspace = () => {
   const { currentUser } = useAuth();
   const navigate = useNavigate();
   
-  const [code, setCode] = useState(LANGUAGES.javascript.defaultCode);
   const [messages, setMessages] = useState([]);
   const [currentMessage, setCurrentMessage] = useState('');
   
-  // --- EXECUTION & EDITOR STATES ---
   const [output, setOutput] = useState('');
   const [isRunning, setIsRunning] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  // Track the selected language key (e.g., 'javascript', 'python')
   const [activeLang, setActiveLang] = useState('javascript'); 
 
-useEffect(() => {
+  const editorRef = useRef(null);
+  const ydocRef = useRef(null);
+  const providerRef = useRef(null);
+
+  useEffect(() => {
     if (!currentUser) { navigate('/'); return; }
 
     const username = currentUser.email.split('@')[0];
 
-    const loadSavedCode = async () => {
-      try {
-        const response = await axios.get(`http://localhost:5000/api/guilds/${guildId}`);
-        if (response.data && response.data.savedCode) {
-          setCode(response.data.savedCode);
-        }
-      } catch (error) {
-        console.error("Failed to load the previous Forge code.", error);
-      }
-    };
-
-    loadSavedCode();
-
-    // UPDATED: Send the username along with the guildId
+    // Join the chat/system room on port 5000
     socket.emit('join_guild_room', { guildId, username });
 
-    socket.on('receive_code', (newCode) => setCode(newCode));
     socket.on('receive_message', (messageData) => setMessages((prev) => [...prev, messageData]));
     socket.on('message_history', (historyArray) => setMessages(historyArray));
 
     return () => {
-      socket.off('receive_code');
+      // 1. Socket.io Cleanup
       socket.off('receive_message');
       socket.off('message_history');
-      // Emit the leave event so the server broadcasts the departure
       socket.emit('leave_guild_room', guildId);
+
+      // 2. Yjs Ghost Cleanup
+      if (providerRef.current) providerRef.current.destroy();
+      if (ydocRef.current) ydocRef.current.destroy();
     };
   }, [guildId, currentUser, navigate]);
 
-  // NEW: Updated for Monaco Editor (receives value directly, not an event)
-  const handleCodeChange = (value) => {
-    setCode(value);
-    socket.emit('code_update', { guildId, code: value });
+  const handleEditorDidMount = (editor, monaco) => {
+    editorRef.current = editor;
+    const ydoc = new Y.Doc();
+    ydocRef.current = ydoc;
+    
+    const provider = new WebsocketProvider('ws://localhost:1234', `forge-room-${guildId}`, ydoc);
+    providerRef.current = provider;
+    
+    const username = currentUser.email.split('@')[0];
+    const userColors = ['#ffb61e', '#ff5252', '#00e676', '#2979ff', '#e040fb'];
+    const myColor = userColors[Math.floor(Math.random() * userColors.length)];
+
+    provider.awareness.setLocalStateField('user', {
+      name: username,
+      color: myColor,
+    });
+    
+    const ytext = ydoc.getText('monaco');
+    const binding = new MonacoBinding(ytext, editor.getModel(), new Set([editor]), provider.awareness);
+    
+    // Load initial code from DB, or load default template if empty
+    axios.get(`http://localhost:5000/api/guilds/${guildId}`)
+      .then(res => {
+        if (res.data && res.data.savedCode && ytext.toString() === '') {
+          ytext.insert(0, res.data.savedCode);
+        } else if (ytext.toString() === '') {
+          ytext.insert(0, LANGUAGES[activeLang].defaultCode);
+        }
+      })
+      .catch(err => console.error("Failed to fetch initial code:", err));
   };
 
   const handleSendMessage = (e) => {
@@ -89,11 +107,12 @@ useEffect(() => {
   const handleRunCode = async () => {
     setIsRunning(true);
     setOutput('Compiling and running...');
-    
+
+    const currentCode = editorRef.current.getValue();
     try {
       const response = await axios.post('http://localhost:5000/api/execute', {
-        code,
-        languageId: LANGUAGES[activeLang].judgeId // Pass correct Judge0 ID
+        code: currentCode,
+        languageId: LANGUAGES[activeLang].judgeId
       });
 
       const result = response.data;
@@ -111,11 +130,11 @@ useEffect(() => {
     }
   };
 
-  // NEW: Save to MongoDB
   const handleSaveCode = async () => {
     setIsSaving(true);
+    const currentCode = editorRef.current.getValue();
     try {
-      await axios.put(`http://localhost:5000/api/guilds/${guildId}/save`, { code });
+      await axios.put(`http://localhost:5000/api/guilds/${guildId}/save`, { code: currentCode });
       setOutput((prev) => `[System]: Code successfully saved to Forge database.\n\n${prev}`);
     } catch (error) {
       setOutput((prev) => `[System Error]: Failed to save code to database.\n\n${prev}`);
@@ -124,18 +143,13 @@ useEffect(() => {
     }
   };
 
-  // NEW: Save then Leave gracefully
   const handleLeaveForge = async () => {
     await handleSaveCode();
     navigate(`/guild/${guildId}`);
   };
 
-  // NEW: Handle Language Swap
   const handleLanguageChange = (e) => {
-    const newLang = e.target.value;
-    setActiveLang(newLang);
-    // Optional: Reset code to default when swapping languages
-    // setCode(LANGUAGES[newLang].defaultCode); 
+    setActiveLang(e.target.value);
   };
 
   return (
@@ -147,7 +161,6 @@ useEffect(() => {
         </div>
         <div className="flex items-center gap-4">
           
-          {/* NEW: Manual Save Button */}
           <button 
             onClick={handleSaveCode}
             disabled={isSaving}
@@ -170,7 +183,6 @@ useEffect(() => {
             <Users size={16} /> Live Sync
           </span>
           
-          {/* UPDATED: Save & Leave */}
           <button onClick={handleLeaveForge} className="text-rose-400 hover:text-rose-300 transition-colors flex items-center gap-2 text-sm font-bold ml-2">
             <LogOut size={16} /> Leave
           </button>
@@ -184,7 +196,6 @@ useEffect(() => {
             <div className="bg-[#0B0E14] p-3 border-b border-white/5 text-xs font-mono text-slate-500 flex justify-between items-center shrink-0">
               <span className="text-purple-400">workspace.{LANGUAGES[activeLang].monaco === 'python' ? 'py' : LANGUAGES[activeLang].monaco === 'cpp' ? 'cpp' : LANGUAGES[activeLang].monaco === 'java' ? 'java' : 'js'}</span>
               
-              {/* NEW: Language Selector */}
               <select 
                 value={activeLang}
                 onChange={handleLanguageChange}
@@ -196,14 +207,12 @@ useEffect(() => {
               </select>
             </div>
             
-            {/* NEW: Monaco Editor Replaces Textarea */}
             <div className="flex-1 overflow-hidden">
               <Editor
                 height="100%"
                 theme="vs-dark"
                 language={LANGUAGES[activeLang].monaco}
-                value={code}
-                onChange={handleCodeChange}
+                onMount={handleEditorDidMount} 
                 options={{
                   minimap: { enabled: false },
                   fontSize: 14,
@@ -232,13 +241,11 @@ useEffect(() => {
             <span className="flex h-2 w-2 rounded-full bg-emerald-500"></span>
           </div>
           
-          {/* Chat Messages Area */}
           <div className="flex-1 p-4 overflow-y-auto flex flex-col gap-3">
             {messages.length === 0 ? (
               <div className="text-slate-600 text-xs text-center mt-4 italic">No messages yet. Greet your guild!</div>
             ) : (
               messages.map((msg, index) => {
-                // NEW: Special styling for System join/leave alerts
                 if (msg.isSystem || msg.sender === 'System') {
                   return (
                     <div key={index} className="flex justify-center shrink-0 my-1">
@@ -249,7 +256,6 @@ useEffect(() => {
                   );
                 }
 
-                // EXISTING: Standard user message styling
                 return (
                   <div key={index} className="bg-[#0B0E14] rounded-lg p-3 border border-white/5 shrink-0">
                     <div className="flex justify-between items-baseline mb-1">
