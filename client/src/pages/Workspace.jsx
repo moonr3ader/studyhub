@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { io } from 'socket.io-client';
 import { useAuth } from '../context/AuthContext';
-import { Terminal, Users, LogOut, Play, Loader, Save } from 'lucide-react'; 
+import { Terminal, Users, LogOut, Play, Loader, Save, Trophy, Target, X, Award, Lock } from 'lucide-react';
 import axios from 'axios';
 import Editor from '@monaco-editor/react';
 import * as Y from 'yjs';
@@ -22,42 +22,59 @@ const Workspace = () => {
   const { guildId } = useParams();
   const { currentUser } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const questIdFromBoard = location.state?.activeQuestId; 
   
+  // --- CHAT STATES ---
   const [messages, setMessages] = useState([]);
   const [currentMessage, setCurrentMessage] = useState('');
   
+  // --- CODING & EXECUTION STATES ---
   const [output, setOutput] = useState('');
   const [isRunning, setIsRunning] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [activeLang, setActiveLang] = useState('javascript'); 
 
+  // --- GAMIFICATION STATES  ---
+  const [showQuestModal, setShowQuestModal] = useState(false);
+  const [activeChallenge, setActiveChallenge] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submissionResult, setSubmissionResult] = useState(null);
+
+  // --- REFS ---
   const editorRef = useRef(null);
   const ydocRef = useRef(null);
   const providerRef = useRef(null);
 
+  // 1. CHAT & SYSTEM SOCKET INITIALIZATION
   useEffect(() => {
     if (!currentUser) { navigate('/'); return; }
 
     const username = currentUser.email.split('@')[0];
-
-    // Join the chat/system room on port 5000
-    socket.emit('join_guild_room', { guildId, username });
+    socket.emit('join_guild_room', { guildId, username, uid: currentUser.uid });
 
     socket.on('receive_message', (messageData) => setMessages((prev) => [...prev, messageData]));
     socket.on('message_history', (historyArray) => setMessages(historyArray));
 
     return () => {
-      // 1. Socket.io Cleanup
       socket.off('receive_message');
       socket.off('message_history');
       socket.emit('leave_guild_room', guildId);
 
-      // 2. Yjs Ghost Cleanup
       if (providerRef.current) providerRef.current.destroy();
       if (ydocRef.current) ydocRef.current.destroy();
     };
   }, [guildId, currentUser, navigate]);
 
+  // 2. QUEST AUTO-LOADER
+  useEffect(() => {
+    if (questIdFromBoard) {
+      openQuestModal(questIdFromBoard);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [questIdFromBoard]);
+
+  // --- EDITOR & COLLABORATION LOGIC ---
   const handleEditorDidMount = (editor, monaco) => {
     editorRef.current = editor;
     const ydoc = new Y.Doc();
@@ -76,9 +93,10 @@ const Workspace = () => {
     });
     
     const ytext = ydoc.getText('monaco');
-    const binding = new MonacoBinding(ytext, editor.getModel(), new Set([editor]), provider.awareness);
+    // Bind Yjs to the Monaco Editor
+    new MonacoBinding(ytext, editor.getModel(), new Set([editor]), provider.awareness);
     
-    // Load initial code from DB, or load default template if empty
+    // Load initial code from DB, or load default template
     axios.get(`http://localhost:5000/api/guilds/${guildId}`)
       .then(res => {
         if (res.data && res.data.savedCode && ytext.toString() === '') {
@@ -90,6 +108,11 @@ const Workspace = () => {
       .catch(err => console.error("Failed to fetch initial code:", err));
   };
 
+  const handleLanguageChange = (e) => {
+    setActiveLang(e.target.value);
+  };
+
+  // --- ACTIONS ---
   const handleSendMessage = (e) => {
     e.preventDefault();
     if (currentMessage.trim() !== '') {
@@ -144,12 +167,59 @@ const Workspace = () => {
   };
 
   const handleLeaveForge = async () => {
+    // If they have an active quest, and they haven't successfully passed it yet...
+    if (activeChallenge && (!submissionResult || !submissionResult.success)) {
+      const confirmRetreat = window.confirm(
+        "Leaving the Forge without conquering the trial? \n\nThis bounty and its XP might not be available the next time you return. Are you sure you want to retreat?"
+      );
+      
+      // If they click "Cancel", stop the function and keep them in the room
+      if (!confirmRetreat) return; 
+    }
+
+    // If they click "OK" (or if they already won), proceed as normal
     await handleSaveCode();
     navigate(`/guild/${guildId}`);
   };
 
-  const handleLanguageChange = (e) => {
-    setActiveLang(e.target.value);
+  // --- GAMIFICATION LOGIC ---
+  const openQuestModal = async (specificId = null) => {
+    setShowQuestModal(true);
+    setSubmissionResult(null); 
+    
+    try {
+      const targetId = specificId || questIdFromBoard;
+      const url = targetId 
+        ? `http://localhost:5000/api/challenges/${targetId}`
+        : `http://localhost:5000/api/challenges/active`;
+
+      const res = await axios.get(url);
+      setActiveChallenge(res.data);
+    } catch (error) {
+      console.error("Failed to load quest data.", error);
+    }
+  };
+
+  const handleSubmitChallenge = async () => {
+    if (!activeChallenge) return;
+    setIsSubmitting(true);
+    setSubmissionResult(null);
+
+    const currentCode = editorRef.current.getValue();
+    try {
+      const response = await axios.post(`http://localhost:5000/api/challenges/${activeChallenge._id}/submit`, {
+        userId: currentUser.uid, 
+        guildId: guildId,
+        code: currentCode,
+        languageId: LANGUAGES[activeLang].judgeId
+      });
+
+      setSubmissionResult(response.data);
+    } catch (error) {
+      setSubmissionResult({ success: false, output: "System Error: Failed to reach the Judges." });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -168,6 +238,21 @@ const Workspace = () => {
           >
             <Save size={16} className={isSaving ? "animate-pulse text-purple-400" : ""} /> 
             {isSaving ? 'Saving...' : 'Save'}
+          </button>
+
+          {/* Active Quest Button */}
+          <button 
+            onClick={() => openQuestModal(questIdFromBoard)}
+            disabled={!questIdFromBoard}
+            title={!questIdFromBoard ? "Accept a contract from the Quest Board first!" : "View Active Quest"}
+            className={`px-4 py-1.5 rounded-lg text-sm font-bold flex items-center gap-2 transition-all border
+              ${!questIdFromBoard 
+                ? 'bg-slate-800/50 text-slate-500 border-slate-700/50 cursor-not-allowed' 
+                : 'bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border-amber-500/30'
+              }`}
+          >
+            {!questIdFromBoard ? <Lock size={16} /> : <Target size={16} />}
+            {!questIdFromBoard ? 'No Active Quest' : 'Active Quest'}
           </button>
 
           <button 
@@ -280,6 +365,89 @@ const Workspace = () => {
           </form>
         </aside>
       </main>
+
+      {/* ========================================= */}
+      {/* SPRINT 4: GAMIFICATION QUEST MODAL          */}
+      {/* ========================================= */}
+      {showQuestModal && (
+        <div className="absolute inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-[#161B22] border border-amber-500/30 rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            
+            {/* Modal Header */}
+            <div className="bg-[#0B0E14] p-4 border-b border-white/5 flex justify-between items-center shrink-0">
+              <div className="flex items-center gap-3">
+                <Trophy className="text-amber-400" />
+                <h2 className="text-lg font-black text-white tracking-widest uppercase">Active Guild Quest</h2>
+              </div>
+              <button onClick={() => setShowQuestModal(false)} className="text-slate-500 hover:text-rose-400 transition-colors">
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 overflow-y-auto">
+              {activeChallenge ? (
+                <>
+                  <div className="flex justify-between items-start mb-4">
+                    <h3 className="text-2xl font-bold text-slate-100">{activeChallenge.title}</h3>
+                    <span className="bg-amber-500/10 text-amber-400 font-mono font-bold px-3 py-1 rounded-full text-sm border border-amber-500/20">
+                      +{activeChallenge.totalXP} XP
+                    </span>
+                  </div>
+                  
+                  <div className="bg-[#0B0E14] border border-white/5 p-4 rounded-xl mb-6">
+                    <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Instructions</h4>
+                    <p className="text-slate-300 text-sm leading-relaxed">{activeChallenge.description}</p>
+                  </div>
+
+                  {/* Submission Results Area */}
+                  {submissionResult && (
+                    <div className={`p-4 rounded-xl mb-6 border ${submissionResult.success ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-rose-500/10 border-rose-500/30'}`}>
+                      <h4 className={`text-sm font-bold mb-2 ${submissionResult.success ? 'text-emerald-400' : 'text-rose-400'}`}>
+                        {submissionResult.message}
+                      </h4>
+                      <pre className="text-xs font-mono text-slate-300 whitespace-pre-wrap bg-[#0B0E14] p-3 rounded-lg border border-white/5">
+                        {submissionResult.output}
+                      </pre>
+                      
+                      {/* Badge Unlocked Notification */}
+                      {submissionResult.newBadge && (
+                        <div className="mt-4 flex items-center gap-3 bg-amber-500/20 border border-amber-500/40 p-3 rounded-lg animate-pulse">
+                          <Award className="text-amber-400" size={24} />
+                          <div>
+                            <p className="text-xs text-amber-200 font-bold uppercase">Badge Unlocked!</p>
+                            <p className="text-sm text-amber-400 font-black">{submissionResult.newBadge.badgeTitle}</p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="flex justify-end gap-3 mt-6">
+                    <button 
+                      onClick={() => setShowQuestModal(false)}
+                      className="px-4 py-2 rounded-lg text-sm font-bold text-slate-400 hover:text-white transition-colors"
+                    >
+                      Keep Coding
+                    </button>
+                    <button 
+                      onClick={handleSubmitChallenge}
+                      disabled={isSubmitting || (submissionResult && submissionResult.success)}
+                      className="bg-amber-500 hover:bg-amber-600 disabled:bg-slate-700 disabled:text-slate-500 text-[#0B0E14] px-6 py-2 rounded-lg text-sm font-black tracking-wide flex items-center gap-2 transition-all"
+                    >
+                      {isSubmitting ? <Loader className="animate-spin" size={16} /> : <Target size={16} />}
+                      {isSubmitting ? 'Evaluating...' : 'Submit Solution to Judges'}
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <div className="flex justify-center p-8"><Loader className="animate-spin text-amber-500" /></div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };

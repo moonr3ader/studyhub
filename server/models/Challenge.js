@@ -25,7 +25,19 @@ const challengeSchema = new mongoose.Schema({
     testCases: [{ 
         input: String, 
         expectedOutput: String
-    }], 
+    }],
+    challengeType: { 
+        type: String, 
+        enum: ['solo', 'guild'], 
+        default: 'solo' 
+    },
+    active: { 
+        type: Boolean, 
+        default: true 
+    },
+    expiresAt: { 
+        type: Date
+    },
     createdAt: { 
         type: Date, 
         default: Date.now 

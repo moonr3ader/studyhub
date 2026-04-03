@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { Award, Clock, LogOut, ShieldAlert, Trophy, Map, Settings } from 'lucide-react';
+import { Award, Clock, LogOut, ShieldAlert, Trophy, Map, Settings, Star } from 'lucide-react';
 
 const Dashboard = () => {
   const { currentUser, logout } = useAuth(); 
@@ -53,7 +53,7 @@ const Dashboard = () => {
           ...playerData,
           xp: response.data.newXp,
           level: response.data.newLevel,
-          lastClaimed: response.data.lastClaimed // Update timestamp from server
+          lastClaimed: response.data.lastClaimed 
         });
 
         if (response.data.leveledUp) {
@@ -70,7 +70,6 @@ const Dashboard = () => {
   // Countdown State & Effect
   const [timeLeft, setTimeLeft] = useState("");
   useEffect(() => {
-    // Function to calculate the string "Xh Ym"
     const updateCountdown = () => {
       if (!playerData?.lastClaimed) return;
 
@@ -80,7 +79,7 @@ const Dashboard = () => {
       const remaining = cooldown - (now - last);
 
       if (remaining <= 0) {
-        setTimeLeft(""); // Timer finished
+        setTimeLeft(""); 
       } else {
         const hours = Math.floor(remaining / (1000 * 60 * 60));
         const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
@@ -88,14 +87,12 @@ const Dashboard = () => {
       }
     };
 
-    // Run once on mount and then every minute
     updateCountdown();
     const timer = setInterval(updateCountdown, 60000);
 
     return () => clearInterval(timer);
   }, [playerData?.lastClaimed]);
 
-  // Helper to check if button should be locked
   const canClaim = () => {
     if (!playerData?.lastClaimed) return true;
     const last = new Date(playerData.lastClaimed).getTime();
@@ -132,12 +129,10 @@ const Dashboard = () => {
   const nextLevelXp = Math.pow(currentLevel, 2) * 100; 
   const xpPercentage = Math.min((playerData.xp / nextLevelXp) * 100, 100);
 
-  const earnedBadges = ["Early Adopter"];
-  if (playerData.isQualified) earnedBadges.push("Trial Survivor");
-  if (playerData.isInGuild) earnedBadges.push("Team Player");
-
-  // Self-Note: Add 'pendingGuildID' to the check. 
-  // If they have this, they aren't 'Qualified' anymore, but they aren't 'In a Guild' yet.
+  // System Milestone Badges
+  const milestoneBadges = ["Early Adopter"];
+  if (playerData.isQualified) milestoneBadges.push("Trial Survivor");
+  if (playerData.isInGuild) milestoneBadges.push("Team Player");
 
   const isPending = playerData.pendingGuildID;
 
@@ -167,7 +162,6 @@ const Dashboard = () => {
               Welcome back, 
               <span className="text-purple-500">{playerData.username}</span>
               
-              {/* THE ADMIN BADGE */}
               {playerData.isAdmin && (
                 <span className="bg-red-500/20 text-red-500 border border-red-500/50 text-[10px] uppercase tracking-widest px-2 py-1 rounded-md shadow-[0_0_10px_rgba(239,68,68,0.3)]">
                   System Admin
@@ -179,7 +173,6 @@ const Dashboard = () => {
             </p>
           </div>
           
-          {/* The secret button that only appears for you */}
           {playerData.isAdmin && (
              <button 
                 onClick={() => navigate('/admin')} 
@@ -228,11 +221,11 @@ const Dashboard = () => {
                   </p>
                 </div>
                 <div className="flex flex-col sm:flex-row gap-4 w-full xl:w-auto">
-                  <button onClick={() => window.location.href = '/guilds'} className="w-full sm:w-auto bg-[#0B0E14] border border-emerald-500/50 hover:bg-emerald-500/10 text-emerald-400 px-6 py-4 rounded-xl font-black uppercase tracking-widest transition-all">
+                  <button onClick={() => navigate('/guilds')} className="w-full sm:w-auto bg-[#0B0E14] border border-emerald-500/50 hover:bg-emerald-500/10 text-emerald-400 px-6 py-4 rounded-xl font-black uppercase tracking-widest transition-all">
                     Guild Hub
                   </button>
                   {playerData.isInGuild && playerData.guildID ? (
-                    <button onClick={() => window.location.href = `/guild/${playerData.guildID}`} className="w-full sm:w-auto bg-purple-600 hover:bg-purple-500 px-8 py-4 rounded-xl font-black uppercase tracking-widest text-white transition-all shadow-[0_0_15px_rgba(168,85,247,0.4)]">
+                    <button onClick={() => navigate(`/guild/${playerData.guildID}`)} className="w-full sm:w-auto bg-purple-600 hover:bg-purple-500 px-8 py-4 rounded-xl font-black uppercase tracking-widest text-white transition-all shadow-[0_0_15px_rgba(168,85,247,0.4)]">
                       Enter My Guild
                     </button>
                   ) : (
@@ -281,14 +274,27 @@ const Dashboard = () => {
             </div>
           </div>
 
+          {/* BADGES SECTION */}
           <div className="bg-[#161B22] border border-white/10 rounded-3xl p-6 md:p-8 shadow-lg">
-            <h3 className="text-lg md:text-xl font-black text-white mb-6 uppercase tracking-widest">Badges</h3>
-            <div className="flex flex-wrap gap-4">
-              {earnedBadges.map(badge => (
-                <div key={badge} className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-[#0B0E14] border border-white/5 flex items-center justify-center hover:bg-purple-500/20 hover:border-purple-500/50 transition-all cursor-help group shadow-md" title={badge}>
-                  <Award className="w-6 h-6 md:w-7 md:h-7 text-purple-400 group-hover:scale-110 transition-transform" />
+            <h3 className="text-lg md:text-xl font-black text-white mb-6 uppercase tracking-widest">Trophy Room</h3>
+            <div className="flex flex-wrap gap-6 md:gap-8">
+              
+              {playerData.badges && playerData.badges.length > 0 ? (
+                playerData.badges.map(badge => (
+                  <div key={badge._id} className="flex flex-col items-center gap-2 w-20 group cursor-help" title={`Achievement: ${badge.badgeDescription}`}>
+                    <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-[#0B0E14] border border-purple-500/30 flex items-center justify-center group-hover:bg-purple-500/20 group-hover:border-purple-500/60 transition-all shadow-md shadow-purple-500/10">
+                      <Award className="w-6 h-6 md:w-7 md:h-7 text-purple-400 group-hover:scale-110 group-hover:-rotate-12 transition-all" />
+                    </div>
+                    <span className="text-[10px] text-center font-bold text-slate-400 uppercase leading-tight group-hover:text-purple-400 transition-colors">
+                      {badge.badgeTitle}
+                    </span>
+                  </div>
+                ))
+              ) : (
+                <div className="text-slate-500 font-mono text-sm italic w-full text-center py-4">
+                  Your trophy room is currently empty.
                 </div>
-              ))}
+              )}
             </div>
           </div>
         </div>
@@ -321,7 +327,6 @@ const Dashboard = () => {
             <Map className="text-purple-500" size={24} /> Realm Facilities
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Quest Board Card */}
             <div onClick={() => navigate('/quest')}
               className="bg-[#161B22] border border-white/5 hover:border-purple-500/50 rounded-3xl p-6 cursor-pointer group transition-all hover:shadow-[0_0_30px_rgba(168,85,247,0.15)] relative overflow-hidden">
               <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/5 rounded-full blur-3xl group-hover:bg-purple-500/10 transition-colors"></div>
@@ -329,7 +334,6 @@ const Dashboard = () => {
               <h3 className="text-xl font-black text-white uppercase tracking-widest mb-2">Quest Board</h3>
               <p className="text-slate-400 text-sm leading-relaxed">View daily bounties, special events, and claim your hard-earned XP.</p>
             </div>
-            {/* Hall of Fame Card */}
             <div onClick={() => navigate('/leaderboard')}
               className="bg-[#161B22] border border-white/5 hover:border-yellow-500/50 rounded-3xl p-6 cursor-pointer group transition-all hover:shadow-[0_0_30px_rgba(234,179,8,0.15)] relative overflow-hidden">
               <div className="absolute top-0 right-0 w-32 h-32 bg-yellow-500/5 rounded-full blur-3xl group-hover:bg-yellow-500/10 transition-colors"></div>
@@ -337,7 +341,6 @@ const Dashboard = () => {
               <h3 className="text-xl font-black text-white uppercase tracking-widest mb-2">Hall of Fame</h3>
               <p className="text-slate-400 text-sm leading-relaxed">See how you rank against the greatest adventurers and guilds in the realm.</p>
             </div>
-            {/* Settings Card */}
             <div onClick={() => navigate('/settings')}
               className="bg-[#161B22] border border-white/5 hover:border-slate-400/50 rounded-3xl p-6 cursor-pointer group transition-all hover:shadow-[0_0_30px_rgba(148,163,184,0.15)] relative overflow-hidden">
               <div className="absolute top-0 right-0 w-32 h-32 bg-slate-500/5 rounded-full blur-3xl group-hover:bg-slate-500/10 transition-colors"></div>

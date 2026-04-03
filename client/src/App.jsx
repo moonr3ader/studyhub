@@ -12,9 +12,11 @@ import AuthPage from './pages/AuthPage';
 import VerifyEmail from './pages/VerifyEmail';
 import Dashboard from './pages/Dashboard';
 import PreliminaryQuest from './pages/PreliminaryQuest';
+import QuestBoard from './pages/QuestBoard';
 import GuildHub from './pages/GuildHub';
 import Leaderboard from './pages/Leaderboard';
 import Workspace from './pages/Workspace';
+import SoloWorkspace from './pages/SoloWorkspace';
 import MyGuild from './pages/MyGuild';
 import Settings from './pages/Settings';
 
@@ -40,8 +42,12 @@ function App() {
               element={<ProtectedRoute><Dashboard /></ProtectedRoute>} 
             />
             <Route 
-              path="/quest" 
+              path="/preliminary-quest" 
               element={<ProtectedRoute><PreliminaryQuest /></ProtectedRoute>} 
+            />
+            <Route 
+              path="/quest" 
+              element={<ProtectedRoute><QuestBoard /></ProtectedRoute>} 
             />
             <Route 
               path="/guilds" 
@@ -58,6 +64,10 @@ function App() {
             <Route 
               path="/workspace/:guildId" 
               element={<ProtectedRoute><Workspace /></ProtectedRoute>} 
+            />
+            <Route
+              path="/solo-workspace"
+              element={<ProtectedRoute><SoloWorkspace /></ProtectedRoute>}
             />
             <Route 
               path="/admin" 
