@@ -61,7 +61,13 @@ const UserSchema = new mongoose.Schema({
     badges: [{
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Badge'
+    }],
+    notifications: [{
+        message: String,
+        type: { type: String, enum: ['success', 'warning', 'info'], default: 'info' },
+        isRead: { type: Boolean, default: false },
+        createdAt: { type: Date, default: Date.now }
     }]
-});
+}, { timestamps: true});
 
 module.exports = mongoose.model('User', UserSchema);

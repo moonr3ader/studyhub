@@ -105,7 +105,14 @@ const Leaderboard = () => {
                   {players.length > 0 ? players.map((player, i) => (
                     <tr key={player._id || i} className="border-b border-white/5 hover:bg-white/[0.02]">
                       <td className="p-4 text-center"><RankIcon rank={i + 1} /></td>
-                      <td className="p-4 font-bold text-white">{player.username || "Anonymous"}</td>
+                      {/* Interactive Profile Link */}
+                      <td 
+                        className="p-4 font-bold text-white cursor-pointer hover:text-purple-400 transition-colors"
+                        onClick={() => navigate(`/profile/${player.firebaseUid}`)}
+                        title={`Inspect ${player.username}'s Profile`}
+                      >
+                        {player.username || "Anonymous"}
+                      </td>
                       <td className="p-4 text-center">
                         <span className="text-xs bg-purple-500/10 text-purple-400 px-2 py-1 rounded border border-purple-500/20">
                           Lvl {player.level || 1}

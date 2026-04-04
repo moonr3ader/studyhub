@@ -5,8 +5,14 @@ import axios from 'axios';
 import { Settings as SettingsIcon, User, Lock, Shield, ArrowLeft, Save, AlertTriangle } from 'lucide-react';
 
 const Settings = () => {
+  // ==========================================
+  // CONTEXT & STATE
+  // ==========================================
   const { currentUser, changePassword } = useAuth();
   const navigate = useNavigate();
+  
+  // Safely checks if the user logged in with an email/password combination
+  const isPasswordUser = currentUser?.providerData.some(provider => provider.providerId === 'password');
   
   const [activeTab, setActiveTab] = useState('profile');
   const [playerData, setPlayerData] = useState(null);
@@ -20,6 +26,9 @@ const Settings = () => {
   const [message, setMessage] = useState({ type: '', text: '' });
   const [loading, setLoading] = useState(false);
 
+  // ==========================================
+  // DATA FETCHING (INITIAL LOAD)
+  // ==========================================
   useEffect(() => {
     const fetchUserData = async () => {
       try {
@@ -30,8 +39,13 @@ const Settings = () => {
         setMessage({ type: 'error', text: 'Failed to load profile data.' });
       }
     };
+    
     if (currentUser) fetchUserData();
   }, [currentUser]);
+
+  // ==========================================
+  // HANDLERS
+  // ==========================================
 
   const handleUpdateProfile = async (e) => {
     e.preventDefault();
@@ -42,15 +56,17 @@ const Settings = () => {
       await axios.patch(`http://localhost:5000/api/user/${currentUser.uid}`, { username });
       setMessage({ type: 'success', text: 'Guild Registry updated successfully!' });
     } catch (err) {
-      // THE FIX: Look for the specific backend error, otherwise use a fallback
+      // Look for the specific backend error, otherwise use a fallback
       const errorMessage = err.response?.data?.error || 'Failed to update username.';
       setMessage({ type: 'error', text: errorMessage });
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleUpdatePassword = async (e) => {
     e.preventDefault();
+    
     if (newPassword !== confirmPassword) {
       return setMessage({ type: 'error', text: 'Passwords do not match.' });
     }
@@ -70,22 +86,33 @@ const Settings = () => {
       } else {
         setMessage({ type: 'error', text: err.message });
       }
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
-  if (!playerData) return <div className="min-h-screen bg-[#0B0E14] text-slate-500 flex items-center justify-center font-mono animate-pulse uppercase tracking-widest">Accessing Records...</div>;
+  // ==========================================
+  // RENDER BLOCKS
+  // ==========================================
+
+  if (!playerData) {
+    return (
+      <div className="min-h-screen bg-[#0B0E14] text-slate-500 flex items-center justify-center font-mono animate-pulse uppercase tracking-widest">
+        Accessing Records...
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#0B0E14] text-slate-200 p-6 md:p-10">
       <div className="max-w-4xl mx-auto">
         
-        {/* Navigation */}
+        {/* --- NAVIGATION --- */}
         <button onClick={() => navigate('/dashboard')} className="text-slate-500 hover:text-slate-300 transition-colors flex items-center gap-2 font-bold mb-8 uppercase tracking-widest text-xs">
           <ArrowLeft size={14} /> Return to Dashboard
         </button>
 
-        {/* Header */}
+        {/* --- HEADER --- */}
         <header className="mb-10 flex items-center gap-4 border-b border-white/5 pb-6">
           <div className="bg-[#161B22] p-3 rounded-2xl border border-white/10 shadow-lg">
             <SettingsIcon className="text-slate-400 w-8 h-8" />
@@ -98,7 +125,7 @@ const Settings = () => {
 
         <div className="flex flex-col md:flex-row gap-8">
           
-          {/* Sidebar Tabs */}
+          {/* --- SIDEBAR TABS --- */}
           <div className="w-full md:w-64 space-y-2">
             <button 
               onClick={() => { setActiveTab('profile'); setMessage({ type: '', text: '' }); }}
@@ -124,7 +151,7 @@ const Settings = () => {
             )}
           </div>
 
-          {/* Main Content Area */}
+          {/* --- MAIN CONTENT AREA --- */}
           <div className="flex-1 bg-[#161B22] border border-white/5 rounded-3xl p-8 shadow-2xl relative overflow-hidden">
             
             {/* Status Message Display */}
@@ -139,6 +166,7 @@ const Settings = () => {
             {activeTab === 'profile' && (
               <div className="animate-fade-in">
                 <h2 className="text-xl font-black text-white uppercase tracking-widest mb-6 border-b border-white/5 pb-4">Identity Details</h2>
+                
                 <form onSubmit={handleUpdateProfile} className="space-y-6">
                   <div>
                     <label className="text-xs font-bold uppercase tracking-widest text-slate-500 block mb-2">Adventurer Name</label>
@@ -159,6 +187,7 @@ const Settings = () => {
                       className="w-full bg-[#0B0E14] border border-white/5 rounded-xl p-4 text-slate-500 opacity-70 cursor-not-allowed"
                     />
                   </div>
+                  
                   <button disabled={loading} type="submit" className="bg-purple-600 hover:bg-purple-500 text-white px-8 py-4 rounded-xl font-black uppercase tracking-widest text-sm transition-transform active:scale-95 flex items-center gap-2 mt-4 shadow-[0_0_20px_rgba(168,85,247,0.2)] disabled:opacity-50">
                     <Save size={18} /> {loading ? 'Saving...' : 'Save Changes'}
                   </button>
@@ -171,8 +200,8 @@ const Settings = () => {
               <div className="animate-fade-in">
                 <h2 className="text-xl font-black text-white uppercase tracking-widest mb-6 border-b border-white/5 pb-4">Forge a New Sigil</h2>
                 
-                {/* Note for Google/Github users */}
-                {currentUser.providerData[0]?.providerId !== 'password' ? (
+                {/* Check if user logged in via Google/Github */}
+                {!isPasswordUser ? (
                    <div className="bg-blue-500/10 border border-blue-500/20 p-6 rounded-2xl text-blue-400">
                      <p className="font-bold flex items-center gap-2 mb-2"><Shield size={18}/> Social Login Detected</p>
                      <p className="text-sm text-blue-400/80 leading-relaxed">You authenticated using {currentUser.providerData[0]?.providerId.split('.')[0]}. Your password is managed directly by that provider. You cannot change it here.</p>
@@ -201,6 +230,7 @@ const Settings = () => {
                         minLength="6"
                       />
                     </div>
+                    
                     <button disabled={loading} type="submit" className="bg-emerald-600 hover:bg-emerald-500 text-white px-8 py-4 rounded-xl font-black uppercase tracking-widest text-sm transition-transform active:scale-95 flex items-center gap-2 mt-4 shadow-[0_0_20px_rgba(16,185,129,0.2)] disabled:opacity-50">
                       <Lock size={18} /> {loading ? 'Updating...' : 'Update Password'}
                     </button>

@@ -11,6 +11,7 @@ import Landing from './pages/Landing';
 import AuthPage from './pages/AuthPage';
 import VerifyEmail from './pages/VerifyEmail';
 import Dashboard from './pages/Dashboard';
+import Profile from './pages/Profile';
 import PreliminaryQuest from './pages/PreliminaryQuest';
 import QuestBoard from './pages/QuestBoard';
 import GuildHub from './pages/GuildHub';
@@ -40,6 +41,10 @@ function App() {
             <Route 
               path="/dashboard" 
               element={<ProtectedRoute><Dashboard /></ProtectedRoute>} 
+            />
+            <Route 
+              path="/profile/:uid" 
+              element={<ProtectedRoute><Profile /></ProtectedRoute>} 
             />
             <Route 
               path="/preliminary-quest" 

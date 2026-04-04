@@ -88,6 +88,10 @@ const PreliminaryQuest = () => {
         username: username
       });
       setPlayerData(res.data.user); 
+      
+      // Teleport the user to their new home!
+      navigate('/dashboard');
+      
     } catch (err) {
       setError(err.response?.data?.error || "Failed to forge identity.");
     }

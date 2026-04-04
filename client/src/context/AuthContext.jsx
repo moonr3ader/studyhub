@@ -4,12 +4,14 @@ import {
   onAuthStateChanged,
   createUserWithEmailAndPassword, 
   signInWithEmailAndPassword, 
-  signOut, signInWithPopup, 
+  signOut, 
+  signInWithPopup, 
   GoogleAuthProvider, 
   GithubAuthProvider, 
   sendEmailVerification, 
   getAdditionalUserInfo, 
-  updatePassword 
+  updatePassword, 
+  sendPasswordResetEmail 
 } from "firebase/auth";
 
 const AuthContext = createContext();
@@ -35,6 +37,10 @@ export const AuthProvider = ({ children }) => {
     return signOut(auth);
   };
 
+  const resetPassword = (email) => {
+    return sendPasswordResetEmail(auth, email);
+  };
+
   const changePassword = (newPassword) => {
     if (!currentUser) throw new Error("No user logged in.");
     return updatePassword(currentUser, newPassword);
@@ -44,7 +50,7 @@ export const AuthProvider = ({ children }) => {
   // 2. SOCIAL AUTH & VERIFICATION
   // ==========================================
   
-  // The helper to handle the verification check. 
+  // Helper to handle the verification check. 
   // Only send verification if it's a brand new user or not verified.
   const handleSocialAuth = async (user) => {
     if (!user.emailVerified) {
@@ -62,12 +68,12 @@ export const AuthProvider = ({ children }) => {
       const result = await signInWithPopup(auth, provider);
       const isVerified = await handleSocialAuth(result.user);
       
-      // Self-Note: Check if this is their first time ever logging in
+      // Check if this is their first time ever logging in
       const details = getAdditionalUserInfo(result);
       return { isVerified, isNewUser: details?.isNewUser };
       
     } catch (error) {
-      console.error("Google Auth Failed", error);
+      console.error("Google Auth Failed:", error);
       throw error;
     }
   };
@@ -78,11 +84,12 @@ export const AuthProvider = ({ children }) => {
       const result = await signInWithPopup(auth, provider);
       const isVerified = await handleSocialAuth(result.user);
       
+      // Check if this is their first time ever logging in
       const details = getAdditionalUserInfo(result);
       return { isVerified, isNewUser: details?.isNewUser };
       
     } catch (error) {
-      console.error("GitHub Auth Failed", error);
+      console.error("GitHub Auth Failed:", error);
       throw error;
     }
   };
@@ -95,13 +102,25 @@ export const AuthProvider = ({ children }) => {
       setCurrentUser(user);
       setLoading(false);
     });
+    
     return unsubscribe;
   }, []);
 
-  // Make sure all functions are exposed here!
-  const value = {currentUser, signup, login, logout, loginWithGoogle, loginWithGithub, changePassword};
+  // Make sure all functions are exposed to the rest of the application
+  const value = {
+    currentUser, 
+    signup, 
+    login, 
+    logout, 
+    resetPassword,
+    changePassword,
+    loginWithGoogle, 
+    loginWithGithub
+  };
 
   return (
-    <AuthContext.Provider value={value}>{!loading && children}</AuthContext.Provider>
+    <AuthContext.Provider value={value}>
+      {!loading && children}
+    </AuthContext.Provider>
   );
 };
