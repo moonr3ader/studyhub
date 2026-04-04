@@ -28,7 +28,7 @@ const VerifyEmail = () => {
       await sendEmailVerification(currentUser);
       setMessage('Verification Scroll sent! Teleporting you to the gates...');
       
-      // The Magic Trick: Wait 3 seconds, log them out, and send them to the Auth page
+      // Wait 3 seconds, log them out, and send them to the Auth page
       setTimeout(async () => {
         await logout();
         navigate('/auth');

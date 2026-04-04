@@ -12,10 +12,22 @@ import { MonacoBinding } from 'y-monaco';
 const socket = io('http://localhost:5000'); 
 
 const LANGUAGES = {
-  javascript: { name: 'Node.js', judgeId: 93, monaco: 'javascript', defaultCode: 'console.log("Welcome to the Guild Forge!");' },
-  python: { name: 'Python', judgeId: 71, monaco: 'python', defaultCode: 'print("Welcome to the Guild Forge!")' },
-  cpp: { name: 'C++', judgeId: 54, monaco: 'cpp', defaultCode: '#include <iostream>\n\nint main() {\n    std::cout << "Welcome to the Guild Forge!";\n    return 0;\n}' },
-  java: { name: 'Java', judgeId: 62, monaco: 'java', defaultCode: 'public class Main {\n    public static void main(String[] args) {\n        System.out.println("Welcome to the Guild Forge!");\n    }\n}' }
+  javascript: { 
+    name: 'Node.js', judgeId: 93, monaco: 'javascript', 
+    defaultCode: 'console.log("Welcome to the Guild Forge!");' 
+  },
+  python: { 
+    name: 'Python', judgeId: 71, monaco: 'python', 
+    defaultCode: 'print("Welcome to the Guild Forge!")' 
+  },
+  cpp: { 
+    name: 'C++', judgeId: 54, monaco: 'cpp', 
+    defaultCode: '#include <iostream>\n\nint main() {\n    std::cout << "Welcome to the Guild Forge!";\n    return 0;\n}' 
+  },
+  java: { 
+    name: 'Java', judgeId: 62, monaco: 'java', 
+    defaultCode: 'public class Main {\n    public static void main(String[] args) {\n        System.out.println("Welcome to the Guild Forge!");\n    }\n}' 
+  }
 };
 
 const Workspace = () => {
@@ -168,7 +180,6 @@ const Workspace = () => {
 
   const hasConquered = submissionResult?.success || submissionResult?.output?.includes('already conquered');
   const handleLeaveForge = async () => {
-    // FIX: Now uses hasConquered instead of submissionResult.success
     if (activeChallenge && !hasConquered) {
       const confirmRetreat = window.confirm(
         "Leaving the Forge without conquering the trial? \n\nThis bounty and its XP might not be available the next time you return. Are you sure you want to retreat?"
@@ -382,7 +393,7 @@ const Workspace = () => {
       </main>
 
       {/* ========================================= */}
-      {/* SPRINT 4: GAMIFICATION QUEST MODAL          */}
+      {/* GAMIFICATION QUEST MODAL          */}
       {/* ========================================= */}
       {showQuestModal && (
         <div className="absolute inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">

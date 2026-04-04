@@ -8,7 +8,7 @@ const Landing = () => {
   return (
     <div className="min-h-screen bg-[#0B0E14] text-slate-200 flex flex-col relative overflow-hidden">
       
-      {/* Background Ambient Glow */}
+      {/* Background */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-3xl h-96 bg-purple-600/20 rounded-full blur-[120px] pointer-events-none"></div>
 
       {/* TOP NAVIGATION */}

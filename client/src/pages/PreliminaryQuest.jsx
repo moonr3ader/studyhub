@@ -49,7 +49,7 @@ const PreliminaryQuest = () => {
       }
     };
     
-    // THE FIX: Fetch the trial if we are done loading AND (user doesn't exist OR isn't qualified)
+    // Fetch the trial if we are done loading AND (user doesn't exist OR isn't qualified)
     if (!loading && (!playerData || !playerData.isQualified)) {
       fetchTrial();
     }

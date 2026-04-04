@@ -6,10 +6,22 @@ import axios from 'axios';
 import Editor from '@monaco-editor/react';
 
 const LANGUAGES = {
-  javascript: { name: 'Node.js', judgeId: 93, monaco: 'javascript', defaultCode: 'console.log("Welcome to the Solo Trials!");' },
-  python: { name: 'Python', judgeId: 71, monaco: 'python', defaultCode: 'print("Welcome to the Solo Trials!")' },
-  cpp: { name: 'C++', judgeId: 54, monaco: 'cpp', defaultCode: '#include <iostream>\n\nint main() {\n    std::cout << "Welcome to the Solo Trials!";\n    return 0;\n}' },
-  java: { name: 'Java', judgeId: 62, monaco: 'java', defaultCode: 'public class Main {\n    public static void main(String[] args) {\n        System.out.println("Welcome to the Solo Trials!");\n    }\n}' }
+  javascript: { 
+    name: 'Node.js', judgeId: 93, monaco: 'javascript', 
+    defaultCode: 'console.log("Welcome to the Solo Trials!");' 
+  },
+  python: { 
+    name: 'Python', judgeId: 71, monaco: 'python', 
+    defaultCode: 'print("Welcome to the Solo Trials!")' 
+  },
+  cpp: { 
+    name: 'C++', judgeId: 54, monaco: 'cpp', 
+    defaultCode: '#include <iostream>\n\nint main() {\n    std::cout << "Welcome to the Solo Trials!";\n    return 0;\n}' 
+  },
+  java: { 
+    name: 'Java', judgeId: 62, monaco: 'java', 
+    defaultCode: 'public class Main {\n    public static void main(String[] args) {\n        System.out.println("Welcome to the Solo Trials!");\n    }\n}' 
+  }
 };
 
 const SoloWorkspace = () => {
@@ -92,13 +104,13 @@ const SoloWorkspace = () => {
     try {
       const response = await axios.post(`http://localhost:5000/api/challenges/${activeChallenge._id}/submit`, {
         userId: currentUser.uid, 
-        guildId: null, // Changed 'solo' to null to prevent MongoDB crash!
+        guildId: null, // Changed 'solo' to null to prevent crash in MongoDB
         code: currentCode,
         languageId: LANGUAGES[activeLang].judgeId
       });
       setSubmissionResult(response.data);
     } catch (error) {
-      // Improved error handling to show the real backend error if one exists
+      // error handling to show the real backend error if one exists
       console.error("Detailed Submission Error:", error.response?.data || error.message);
       setSubmissionResult({ 
         success: false, 

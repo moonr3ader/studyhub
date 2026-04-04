@@ -37,7 +37,7 @@ const QuestBoard = () => {
   // --- ROUTING LOGIC ---
   // If they aren't qualified, immediately redirect them to your existing Preliminary Quest!
   if (playerData && !playerData.isQualified) {
-    navigate('/preliminary-quest'); // Adjust this path to match your actual App.jsx route!
+    navigate('/preliminary-quest');
     return null; 
   }
 

@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router-dom';
 
 const GuildHub = () => {
   const { currentUser } = useAuth();
-  const navigate = useNavigate(); // Initialize navigate
+  const navigate = useNavigate();
   const [guilds, setGuilds] = useState([]);
   const [leaderboard, setLeaderboard] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -36,7 +36,7 @@ const GuildHub = () => {
     fetchGuilds();
   }, []);
 
-  // 2. FORGE A NEW GUILD (Corrected)
+  // FORGE A NEW GUILD (Corrected)
   const handleForgeGuild = async (e) => {
     e.preventDefault();
     if (!currentUser) return alert("You must be logged in!");
@@ -57,7 +57,7 @@ const GuildHub = () => {
     }
   };
 
-  // 3. JOIN A GUILD (Fixed Success/Fail Conflict)
+  // JOIN A GUILD (Fixed Success/Fail Conflict)
   const handleJoinGuild = async (guildId) => {
     if (!currentUser) return alert("You must be logged in to join a team!");
 
@@ -77,7 +77,7 @@ const GuildHub = () => {
     }
   };
 
-  // Self-Note: Removed the duplicate handleCreate function that was at the bottom 
+  // Removed the duplicate handleCreate function that was at the bottom 
   // as it was redundant and used undefined variables.
 
   if (loading) {

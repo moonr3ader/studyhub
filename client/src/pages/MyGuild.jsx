@@ -39,7 +39,7 @@ const MyGuild = () => {
     fetchGuildData();
   }, [id, currentUser, navigate]);
 
-  // Self-Note: Save new guild details to DB (Leader Only)
+  // Save new guild details to DB (Leader Only)
   const handleSaveGuild = async () => {
     try {
       const res = await axios.patch(`http://localhost:5000/api/guilds/${id}`, {
@@ -55,7 +55,7 @@ const MyGuild = () => {
     }
   };
 
-  // Self-Note: Logic to remove a player from the active roster
+  // Logic to remove a player from the active roster
   const handleKickMember = async (memberId) => {
     if (!window.confirm("Are you sure you want to banish this adventurer?")) return;
     try {
@@ -70,7 +70,7 @@ const MyGuild = () => {
     }
   };
 
-  // Self-Note: Moves a user from the 'pending' list to the 'active' roster.
+  // Moves a user from the 'pending' list to the 'active' roster.
   const handleAcceptApplicant = async (targetUserId) => {
     try {
       const response = await axios.post(`http://localhost:5000/api/guilds/${id}/accept`, {
@@ -93,7 +93,7 @@ const MyGuild = () => {
     }
   };
 
-  // Self-Note: Removes the user from the pending list and declines their application.
+  // Removes the user from the pending list and declines their application.
   const handleDeclineApplicant = async (targetUserId) => {
     try {
       const response = await axios.post(`http://localhost:5000/api/guilds/${id}/decline`, {
@@ -119,9 +119,9 @@ const MyGuild = () => {
   // Calculate stats
   const totalGuildXP = guild.members.reduce((sum, member) => sum + (member.xp || 0), 0);
   
-  // Self-Note: 1. Identify which member is the leader by ID
+  // Identify which member is the leader by ID
   const leaderObject = guild.members.find(m => String(m._id) === String(guild.adminID));
-  // 2. Compare the leader's Firebase UID to the logged-in user's Firebase UID
+  // Compare the leader's Firebase UID to the logged-in user's Firebase UID
   const isLeader = leaderObject?.firebaseUid === currentUser.uid;
 
   return (
@@ -154,7 +154,7 @@ const MyGuild = () => {
                 <>
                   <div className="flex items-center gap-4 mb-3">
                     <Shield className="text-purple-500" size={40} />
-                    {/* Self-Note: Removed 'uppercase' so custom casing is preserved */}
+                    {/* Removed 'uppercase' so custom casing is preserved */}
                     <h1 className="text-4xl md:text-5xl font-black text-white tracking-tighter italic">
                       {guild.guildName}
                     </h1>

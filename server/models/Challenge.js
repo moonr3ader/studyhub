@@ -5,7 +5,7 @@ const challengeSchema = new mongoose.Schema({
         type: String, 
         required: true 
     },
-    // The instructions (e.g., "Reverse a string")
+    // The instructions
     description: {
         type: String,
         required: true 
@@ -25,7 +25,7 @@ const challengeSchema = new mongoose.Schema({
         type: Boolean, 
         default: true 
     }, 
-    // Optional: The expected output or test cases to validate the code automatically
+    // Optional (expected output or test cases to validate the code automatically)
     testCases: [{ 
         input: String, 
         expectedOutput: String

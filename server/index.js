@@ -542,12 +542,18 @@ app.post('/api/challenges/:challengeId/submit', async (req, res) => {
 
     let earnedBadge = null;
 
-    // Distribute XP and Loot
+    // Award XP & Gamification Rewards
     if (passedAllTests) {
-      const badge = await Badge.findOne({ badgeTitle: "Bug Squasher" });
+      // Check if the challenge has a rare badge. If not, give the standard one
+      let badge = null;
+      if (challenge.rewardBadgeId) {
+        badge = await Badge.findById(challenge.rewardBadgeId);
+      } else {
+        badge = await Badge.findOne({ badgeTitle: "Bug Squasher" });
+      }
 
       if (challenge.challengeType === 'guild') {
-        // Multi-target Raid XP: Give XP to everyone currently in the Forge room
+        // --- MULTIPLAYER RAID XP LOGIC ---
         const activeSockets = await io.in(guildId).fetchSockets();
         const activeUids = [...new Set(activeSockets.map(s => s.data.uid).filter(Boolean))];
         const activeMembers = await User.find({ firebaseUid: { $in: activeUids } });
@@ -555,15 +561,17 @@ app.post('/api/challenges/:challengeId/submit', async (req, res) => {
         for (let member of activeMembers) {
           member.xp = (member.xp || 0) + challenge.totalXP;
           member.level = calculateLevel(member.xp);
+
           if (badge && !member.badges.includes(badge._id)) member.badges.push(badge._id);
           await member.save();
         }
         earnedBadge = badge; 
         
       } else {
-        // Solo XP
+        // --- SOLO XP LOGIC ---
         realUser.xp = (realUser.xp || 0) + challenge.totalXP;
         realUser.level = calculateLevel(realUser.xp);
+
         if (badge && !realUser.badges.includes(badge._id)) {
           realUser.badges.push(badge._id);
           earnedBadge = badge;
