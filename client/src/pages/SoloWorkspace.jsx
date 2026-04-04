@@ -109,8 +109,9 @@ const SoloWorkspace = () => {
     }
   };
 
+  const hasConquered = submissionResult?.success || submissionResult?.output?.includes('already conquered');
   const handleLeaveTrial = () => {
-    if (activeChallenge && (!submissionResult || !submissionResult.success)) {
+    if (activeChallenge && !hasConquered) {
       const confirmRetreat = window.confirm(
         "Leaving the trial early? \n\nThis bounty and its XP might not be available the next time you return. Are you sure you want to retreat?"
       );
@@ -126,16 +127,30 @@ const SoloWorkspace = () => {
           <Terminal className="text-emerald-500" />
           <h1 className="text-xl font-black text-white tracking-widest uppercase">Solo Trial</h1>
         </div>
+        
+        {/* Active Quest Button */}
         <div className="flex items-center gap-4">
           <button onClick={() => setShowQuestModal(true)} className="bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 px-4 py-1.5 rounded-lg text-sm font-bold flex items-center gap-2 transition-colors">
             <Target size={16} /> Active Quest
           </button>
+
+          {/* Run Code Button */}
           <button onClick={handleRunCode} disabled={isRunning} className="bg-emerald-500 hover:bg-emerald-600 disabled:bg-slate-700 text-white px-4 py-1.5 rounded-lg text-sm font-bold flex items-center gap-2 transition-colors">
             {isRunning ? <Loader className="animate-spin" size={16} /> : <Play size={16} />}
             {isRunning ? 'Running...' : 'Run Code'}
           </button>
-          <button onClick={handleLeaveTrial} className="text-rose-400 hover:text-rose-300 transition-colors flex items-center gap-2 text-sm font-bold ml-2">
-            <LogOut size={16} /> Leave
+
+          {/* Leave/Victory Button */}
+          <button 
+            onClick={handleLeaveTrial} 
+            className={`transition-colors flex items-center gap-2 text-sm font-bold ml-2 ${
+              hasConquered 
+                ? 'text-emerald-400 hover:text-emerald-300' 
+                : 'text-rose-400 hover:text-rose-300'
+            }`}
+          >
+            {hasConquered ? <Trophy size={16} /> : <LogOut size={16} />}
+            {hasConquered ? 'Claim Victory & Exit' : 'Leave'}
           </button>
         </div>
       </header>

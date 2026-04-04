@@ -10,11 +10,15 @@ const challengeSchema = new mongoose.Schema({
         type: String,
         required: true 
     },
-    // XP rewarded for solving it 
+    // XP and Badge rewarded for solving it 
     totalXP: { 
         type: Number, 
         default: 0, 
         required: true 
+    },
+    rewardBadgeId: { 
+        type: mongoose.Schema.Types.ObjectId, 
+        ref: 'Badge' 
     },
     // Is the hackathon currently running?
     active: { 

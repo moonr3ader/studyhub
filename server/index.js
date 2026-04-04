@@ -13,15 +13,14 @@ const Challenge = require('./models/Challenge');
 const Submission = require('./models/Submission');
 const Badge = require('./models/Badge');
 
-// --- APP INITIALIZATION ---
+// --- APP & SERVER INIT ---
 const app = express();
 const server = http.createServer(app);
 
-// --- MIDDLEWARE & CONFIG ---
 app.use(cors());
 app.use(express.json());
 
-// --- SOCKET CONFIG ---
+// --- SOCKET.IO CONFIG ---
 const io = new Server(server, {
   cors: {
     origin: "http://localhost:5173",
@@ -36,42 +35,33 @@ mongoose.connect(process.env.MONGO_URI)
 
 
 // =========================================================
-// RPG HELPERS & SCHEMAS
+// HELPERS & TEMPORARY SCHEMAS
 // =========================================================
 
-// Formula: Level = floor(sqrt(XP / 100)) + 1
+// RPG Math: Level = floor(sqrt(XP / 100)) + 1
 const calculateLevel = (totalXp) => Math.floor(Math.sqrt(totalXp / 100)) + 1;
 
-// Temporary schema for random trial questions
+// Temp schema for the preliminary entry test
 const questionSchema = new mongoose.Schema({
   scenario: String,
-  options: [{
-    id: String, // 'A', 'B', 'C'
-    text: String,
-    isCorrect: Boolean
-  }],
+  options: [{ id: String, text: String, isCorrect: Boolean }],
   failureMessage: String
 });
 const Question = mongoose.model('Question', questionSchema);
 
+
 // =========================================================
-// USER ROUTES
+// USER PORTFOLIO & PROGRESSION
 // =========================================================
 
-// Handle quest completion & initial registration
+// Register a new adventurer after passing the trial
 app.post('/api/user/qualify', async (req, res) => {
   const { uid, email, username } = req.body;
   try {
-    // 1. COLLISION CHECK: Does this exact name exist already?
-    const existingUser = await User.findOne({ 
-      username: new RegExp(`^${username}$`, 'i') 
-    });
+    // Prevent duplicate usernames
+    const existingUser = await User.findOne({ username: new RegExp(`^${username}$`, 'i') });
+    if (existingUser) return res.status(400).json({ error: "That name is already claimed by another adventurer." });
 
-    if (existingUser) {
-      return res.status(400).json({ error: "That name is already claimed by another adventurer." });
-    }
-
-    // 2. Create the User (They passed the check!)
     const newUser = new User({
       firebaseUid: uid,
       email: email,
@@ -81,7 +71,7 @@ app.post('/api/user/qualify', async (req, res) => {
       level: 1
     });
 
-    // NEW: Award the initial badges
+    // Grant starter badges
     const trialBadge = await Badge.findOne({ badgeTitle: "Trial Survivor" });
     const earlyBadge = await Badge.findOne({ badgeTitle: "Early Adopter" });
     if (trialBadge) newUser.badges.push(trialBadge._id);
@@ -94,61 +84,7 @@ app.post('/api/user/qualify', async (req, res) => {
   }
 });
 
-// Reward XP with 24hr cooldown check
-app.post('/api/user/award-xp', async (req, res) => {
-  const { uid, xpToAdd } = req.body;
-  try {
-    const user = await User.findOne({ firebaseUid: uid });
-    if (!user) return res.status(404).json({ error: "Adventurer not found" });
-
-    const now = new Date();
-    const cooldown = 24 * 60 * 60 * 1000;
-
-    if (user.lastClaimed && (now - user.lastClaimed) < cooldown) {
-      const timeLeft = cooldown - (now - user.lastClaimed);
-      return res.status(403).json({ 
-        error: `Scroll recharging. ${Math.floor(timeLeft / 3600000)}h left.` 
-      });
-    }
-
-    user.xp = (user.xp || 0) + xpToAdd;
-    user.level = calculateLevel(user.xp);
-    user.lastClaimed = now;
-    await user.save();
-
-    res.status(200).json({ success: true, newXp: user.xp, newLevel: user.level, lastClaimed: user.lastClaimed });
-  } catch (error) {
-    res.status(500).json({ error: "XP award failed" });
-  }
-});
-
-// Get a random Trial Question
-app.get('/api/questions/random', async (req, res) => {
-  try {
-    // Grab exactly 1 random document from the Questions collection
-    const randomQuestion = await Question.aggregate([{ $sample: { size: 1 } }]);
-    
-    if (randomQuestion.length === 0) {
-      return res.status(404).json({ error: "No trials found in the archives." });
-    }
-    
-    res.status(200).json(randomQuestion[0]);
-  } catch (err) {
-    res.status(500).json({ error: "Failed to summon a trial." });
-  }
-});
-
-// Fetch top 10 players by XP
-app.get('/api/users/leaderboard', async (req, res) => {
-  try {
-    const topPlayers = await User.find({}).sort({ xp: -1 }).limit(10).select('username xp level');
-    res.status(200).json(topPlayers);
-  } catch (err) {
-    res.status(500).json({ error: "Player leaderboard failed" });
-  }
-});
-
-// Fetch specific profile by UID
+// Fetch specific profile
 app.get('/api/user/:uid', async (req, res) => {
   try {
     const user = await User.findOne({ firebaseUid: req.params.uid }).populate('badges');
@@ -159,24 +95,19 @@ app.get('/api/user/:uid', async (req, res) => {
   }
 });
 
-// Update specific profile by UID (User changing their own settings)
+// Update profile settings
 app.patch('/api/user/:uid', async (req, res) => {
   const { username } = req.body;
   try {
-    // 1. Collision Check: Does this exact name exist already?
-    const existingUser = await User.findOne({ 
-      username: new RegExp(`^${username}$`, 'i') 
-    });
-
+    const existingUser = await User.findOne({ username: new RegExp(`^${username}$`, 'i') });
     if (existingUser && existingUser.firebaseUid !== req.params.uid) {
       return res.status(400).json({ error: "That name is already claimed by another adventurer." });
     }
 
-    // 2. Safe to Update
     const updatedUser = await User.findOneAndUpdate(
       { firebaseUid: req.params.uid },
       { username: username },
-      { new: true }
+      { returnDocument: 'after' } // Fixed mongoose deprecation warning
     );
     
     if (!updatedUser) return res.status(404).json({ error: "User not found" });
@@ -186,41 +117,33 @@ app.patch('/api/user/:uid', async (req, res) => {
   }
 });
 
-/**
- * POST /api/dev/make-admin
- * Secret dev route to grant a user infinite power and Admin status.
- * WARNING: Remove or heavily protect this before deploying to production!
- */
-app.post('/api/dev/make-admin', async (req, res) => {
-  const { uid } = req.body;
+// Grab a random question for the entry trial
+app.get('/api/questions/random', async (req, res) => {
   try {
-    const user = await User.findOne({ firebaseUid: uid });
-    if (!user) return res.status(404).json({ error: "Adventurer not found." });
-
-    const GOD_MODE_XP = 9999999;
-    
-    user.xp = GOD_MODE_XP;
-    user.level = calculateLevel(GOD_MODE_XP);
-    user.isAdmin = true; 
-
-    await user.save();
-    res.status(200).json({ 
-      message: "God Mode activated. Admin privileges granted.", 
-      newLevel: user.level,
-      newXp: user.xp,
-      isAdmin: user.isAdmin
-    });
+    const randomQuestion = await Question.aggregate([{ $sample: { size: 1 } }]);
+    if (randomQuestion.length === 0) return res.status(404).json({ error: "No trials found in the archives." });
+    res.status(200).json(randomQuestion[0]);
   } catch (err) {
-    res.status(500).json({ error: "Failed to grant Admin powers." });
+    res.status(500).json({ error: "Failed to summon a trial." });
   }
 });
 
 
 // =========================================================
-// GUILD ROUTES
+// HALL OF FAME (LEADERBOARDS)
 // =========================================================
 
-// Calculate top 10 Guilds (Must stay above /api/guilds/:id)
+// Top 10 Adventurers
+app.get('/api/users/leaderboard', async (req, res) => {
+  try {
+    const topPlayers = await User.find({}).sort({ xp: -1 }).limit(10).select('username xp level');
+    res.status(200).json(topPlayers);
+  } catch (err) {
+    res.status(500).json({ error: "Player leaderboard failed" });
+  }
+});
+
+// Top 10 Guilds (Calculates combined member XP on the fly)
 app.get('/api/guilds/leaderboard', async (req, res) => {
   try {
     const guilds = await Guild.find().populate('members', 'xp');
@@ -238,7 +161,12 @@ app.get('/api/guilds/leaderboard', async (req, res) => {
   }
 });
 
-// Fetch all active guilds for the Hub
+
+// =========================================================
+// GUILD SYSTEM
+// =========================================================
+
+// Fetch all active guilds
 app.get('/api/guilds', async (req, res) => {
   try {
     const guilds = await Guild.find().populate('members', 'username level');
@@ -262,7 +190,7 @@ app.get('/api/guilds/:id', async (req, res) => {
   }
 });
 
-// Create new guild
+// Forge a new guild
 app.post('/api/guilds/create', async (req, res) => {
   const { name, description, adminUid, requiresApproval } = req.body;
   try {
@@ -283,21 +211,17 @@ app.post('/api/guilds/create', async (req, res) => {
     user.isInGuild = true;
     user.guildID = newGuild._id;
 
-    // Award Team Player badge
     const teamBadge = await Badge.findOne({ badgeTitle: "Team Player" });
-    if (teamBadge && !user.badges.includes(teamBadge._id)) {
-      user.badges.push(teamBadge._id);
-    }
+    if (teamBadge && !user.badges.includes(teamBadge._id)) user.badges.push(teamBadge._id);
 
     await user.save();
-    
     res.status(201).json({ message: "Guild forged!", guild: newGuild });
   } catch (err) {
     res.status(500).json({ error: "Creation failed" });
   }
 });
 
-// Join an existing guild (Adds to Pending Requests)
+// Request to join a guild
 app.post('/api/guilds/join', async (req, res) => {
   const { uid, guildId } = req.body;
   try {
@@ -305,12 +229,8 @@ app.post('/api/guilds/join', async (req, res) => {
     const guild = await Guild.findById(guildId);
 
     if (!user || !guild) return res.status(404).json({ error: "Record not found." });
-    if (user.isInGuild || user.pendingGuildID) {
-      return res.status(400).json({ error: "You already have an active or pending oath." });
-    }
-    if (guild.members.length >= 5) {
-      return res.status(400).json({ error: "This guild's roster is full." });
-    }
+    if (user.isInGuild || user.pendingGuildID) return res.status(400).json({ error: "You already have an active or pending oath." });
+    if (guild.members.length >= 5) return res.status(400).json({ error: "This guild's roster is full." });
 
     guild.pendingRequests.push(user._id);
     await guild.save();
@@ -324,9 +244,9 @@ app.post('/api/guilds/join', async (req, res) => {
   }
 });
 
-// ACCEPT MEMBER (Leader Only)
+// Accept a recruit (Leader Only)
 app.post('/api/guilds/:id/accept', async (req, res) => {
-  const { adminUid, targetUserId } = req.body;
+  const { targetUserId } = req.body;
   try {
     const guild = await Guild.findById(req.params.id);
     if (guild.members.length >= 5) return res.status(400).json({ error: "Guild is full!" });
@@ -335,7 +255,6 @@ app.post('/api/guilds/:id/accept', async (req, res) => {
     guild.members.push(targetUserId);
     await guild.save();
 
-    // UPDATED: Now properly fetches the user, updates their status, and awards the "Team Player" badge
     const user = await User.findById(targetUserId);
     if(user) {
       user.pendingGuildID = null;
@@ -343,9 +262,7 @@ app.post('/api/guilds/:id/accept', async (req, res) => {
       user.guildID = guild._id;
 
       const teamBadge = await Badge.findOne({ badgeTitle: "Team Player" });
-      if (teamBadge && !user.badges.includes(teamBadge._id)) {
-        user.badges.push(teamBadge._id);
-      }
+      if (teamBadge && !user.badges.includes(teamBadge._id)) user.badges.push(teamBadge._id);
       await user.save();
     }
 
@@ -355,12 +272,11 @@ app.post('/api/guilds/:id/accept', async (req, res) => {
   }
 });
 
-// DECLINE MEMBER (Leader Only)
+// Decline a recruit (Leader Only)
 app.post('/api/guilds/:id/decline', async (req, res) => {
   const { targetUserId } = req.body;
   try {
     const guild = await Guild.findById(req.params.id);
-    
     guild.pendingRequests = guild.pendingRequests.filter(id => id.toString() !== targetUserId);
     await guild.save();
 
@@ -371,49 +287,35 @@ app.post('/api/guilds/:id/decline', async (req, res) => {
   }
 });
 
-// KICK MEMBER (Leader Only)
+// Kick a member (Leader Only)
 app.post('/api/guilds/:id/kick', async (req, res) => {
   const { adminUid, targetMemberId } = req.body;
-  const guildId = req.params.id;
-
   try {
-    const guild = await Guild.findById(guildId);
+    const guild = await Guild.findById(req.params.id);
     const admin = await User.findOne({ firebaseUid: adminUid });
 
     if (!guild || !admin) return res.status(404).json({ error: "Guild or Admin not found." });
-
-    if (String(guild.adminID) !== String(admin._id)) {
-      return res.status(403).json({ error: "Only the Leader holds the power of banishment." });
-    }
-
-    if (String(targetMemberId) === String(guild.adminID)) {
-      return res.status(400).json({ error: "The Leader cannot leave their own post this way." });
-    }
+    if (String(guild.adminID) !== String(admin._id)) return res.status(403).json({ error: "Only the Leader holds the power of banishment." });
+    if (String(targetMemberId) === String(guild.adminID)) return res.status(400).json({ error: "The Leader cannot leave their own post this way." });
 
     guild.members = guild.members.filter(m => String(m) !== String(targetMemberId));
     await guild.save();
 
-    await User.findByIdAndUpdate(targetMemberId, {
-      isInGuild: false,
-      guildID: null
-    });
-
+    await User.findByIdAndUpdate(targetMemberId, { isInGuild: false, guildID: null });
     res.status(200).json({ message: "Adventurer has been removed from the roster." });
   } catch (err) {
-    console.error(err);
     res.status(500).json({ error: "Banishment failed." });
   }
 });
 
-// UPDATE GUILD details
+// Update Guild Info
 app.patch('/api/guilds/:id', async (req, res) => {
   const { adminUid, guildName, guildDescription } = req.body;
   try {
     const guild = await Guild.findById(req.params.id);
-    if (!guild) return res.status(404).json({ error: "Guild not found" });
-
     const user = await User.findOne({ firebaseUid: adminUid });
-    if (!user || String(guild.adminID) !== String(user._id)) {
+    
+    if (!guild || !user || String(guild.adminID) !== String(user._id)) {
       return res.status(403).json({ error: "Only the Leader can forge changes." });
     }
 
@@ -432,38 +334,42 @@ app.patch('/api/guilds/:id', async (req, res) => {
   }
 });
 
-// SAVE FORGE CODE
+// Save code state in the Forge
 app.put('/api/guilds/:guildId/save', async (req, res) => {
   try {
-    const { guildId } = req.params;
-    const { code } = req.body;
-    await Guild.findByIdAndUpdate(guildId, { savedCode: code });
+    await Guild.findByIdAndUpdate(req.params.guildId, { savedCode: req.body.code });
     res.status(200).json({ message: 'Code saved to the Forge successfully.' });
   } catch (error) {
-    console.error('Error saving code:', error);
     res.status(500).json({ error: 'Failed to save code to database' });
   }
 });
 
-// FETCH FORGE CODE
-app.get('/api/guilds/:guildId', async (req, res) => {
+
+// =========================================================
+// QUESTS & SUBMISSIONS (JUDGE0)
+// =========================================================
+
+// Fetch ALL active challenges for the Quest Board
+app.get('/api/challenges', async (req, res) => {
   try {
-    const { guildId } = req.params;
-    const guild = await Guild.findById(guildId); 
-    if (!guild) return res.status(404).json({ error: 'Guild not found' });
-    res.status(200).json({ savedCode: guild.savedCode });
-  } catch (error) {
-    console.error('Error fetching guild code:', error);
-    res.status(500).json({ error: 'Failed to fetch code from database' });
+    const now = new Date();
+    // Return permanent quests OR timed quests that haven't expired yet
+    const challenges = await Challenge.find({ 
+      active: true,
+      $or: [
+        { expiresAt: { $exists: false } }, 
+        { expiresAt: null },               
+        { expiresAt: { $gt: now } }        
+      ]
+    }).sort({ totalXP: 1 });
+    
+    res.status(200).json(challenges);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch quests" });
   }
 });
 
-
-// =========================================================
-// CHALLENGE ROUTES
-// =========================================================
-
-// Submit code for a challenge
+// Submit and grade code via Judge0
 app.post('/api/challenges/:challengeId/submit', async (req, res) => {
   try {
     const { challengeId } = req.params;
@@ -472,34 +378,40 @@ app.post('/api/challenges/:challengeId/submit', async (req, res) => {
     const challenge = await Challenge.findById(challengeId);
     if (!challenge) return res.status(404).json({ error: 'Challenge not found.' });
 
-    // --- DECISION LOGIC: CASES 13 & 17 ---
-    // If the challenge is no longer active, reject the submission immediately.
-    if (!challenge.active) {
-      return res.status(400).json({ error: 'Challenge Ended!' });
-    }
-
-    // Check if the challenge has expired (42-hour timer)
-    if (challenge.expiresAt && new Date() > challenge.expiresAt) {
-      return res.status(400).json({ error: 'Challenge Ended! The 42-hour window has closed.' });
+    // Enforce time limits
+    const now = new Date();
+    if (!challenge.active || (challenge.expiresAt && now > challenge.expiresAt)) {
+      return res.status(400).json({ error: 'This bounty has expired or is no longer active!' });
     }
 
     const realUser = await User.findOne({ firebaseUid: userId });
     if (!realUser) return res.status(404).json({ error: 'Adventurer record not found.' });
 
-    // --- DECISION LOGIC ---
-    // If it's a guild challenge, but the user isn't in a guild, reject them!
     if (challenge.challengeType === 'guild' && !realUser.isInGuild) {
-      return res.status(403).json({ error: 'Join a guild first!' });
+      return res.status(403).json({ error: 'You must swear an oath to a Guild to attempt this trial!' });
     }
 
+    // ANTI-CHEAT: Check if they already solved it
+    let existingSuccess = await Submission.findOne({
+      challengeId: challenge._id,
+      isValid: true,
+      ...(challenge.challengeType === 'guild' ? { guildId } : { userId: realUser._id })
+    });
+
+    if (existingSuccess) {
+      return res.status(400).json({ 
+        error: challenge.challengeType === 'guild' 
+          ? 'Your Guild has already conquered this trial and claimed the bounty!' 
+          : 'You have already conquered this trial and claimed the bounty!' 
+      });
+    }
+
+    // Run code through Judge0
     let passedAllTests = true;
     let finalOutput = '';
     let errorMessage = '';
 
-    // Judge0 looping and XP awarding logic
-    for (let i = 0; i < challenge.testCases.length; i++) {
-      const testCase = challenge.testCases[i];
-
+    for (let testCase of challenge.testCases) {
       const judgeResponse = await axios.post('https://judge0-ce.p.rapidapi.com/submissions?base64_encoded=false&wait=true', {
         source_code: code,
         language_id: languageId,
@@ -519,20 +431,21 @@ app.post('/api/challenges/:challengeId/submit', async (req, res) => {
         errorMessage = result.stderr || result.compile_output;
         break; 
       }
-
+      
       const actualOutput = result.stdout ? result.stdout.trim() : '';
       const expected = testCase.expectedOutput.trim();
 
       if (actualOutput !== expected) {
         passedAllTests = false;
-        finalOutput = `Test Case ${i + 1} Failed.\nExpected: ${expected}\nGot: ${actualOutput}`;
+        finalOutput = `Test Failed.\nExpected: ${expected}\nGot: ${actualOutput}`;
         break;
       }
-      
-      finalOutput = `All test cases passed successfully!`;
     }
+    
+    if(passedAllTests) finalOutput = `All test cases passed successfully!`;
 
-    const newSubmission = new Submission({
+    // Save the submission record
+    await new Submission({
       challengeId,
       guildId,
       userId: realUser._id,
@@ -540,37 +453,30 @@ app.post('/api/challenges/:challengeId/submit', async (req, res) => {
       isValid: passedAllTests,
       submissionStatus: passedAllTests ? 'valid' : 'invalid',
       xpAwarded: passedAllTests ? challenge.totalXP : 0
-    });
-    await newSubmission.save();
+    }).save();
 
     let earnedBadge = null;
+
+    // Distribute XP and Loot
     if (passedAllTests) {
       const badge = await Badge.findOne({ badgeTitle: "Bug Squasher" });
 
       if (challenge.challengeType === 'guild') {
-        // --- MULTIPLAYER RAID XP LOGIC ---
-        // 1. Ask Socket.io for every connection currently sitting in this Guild's room
+        // Multi-target Raid XP: Give XP to everyone currently in the Forge room
         const activeSockets = await io.in(guildId).fetchSockets();
-
-        // 2. Extract their UIDs (Using Set to remove duplicates if someone has two tabs open)
         const activeUids = [...new Set(activeSockets.map(s => s.data.uid).filter(Boolean))];
-
-        // 3. Find all those specific users in the database at once
         const activeMembers = await User.find({ firebaseUid: { $in: activeUids } });
 
-        // 4. Loop through and award everyone the loot!
         for (let member of activeMembers) {
           member.xp = (member.xp || 0) + challenge.totalXP;
           member.level = calculateLevel(member.xp);
-          if (badge && !member.badges.includes(badge._id)) {
-            member.badges.push(badge._id);
-          }
+          if (badge && !member.badges.includes(badge._id)) member.badges.push(badge._id);
           await member.save();
         }
         earnedBadge = badge; 
-
+        
       } else {
-        // --- SOLO XP LOGIC ---
+        // Solo XP
         realUser.xp = (realUser.xp || 0) + challenge.totalXP;
         realUser.level = calculateLevel(realUser.xp);
         if (badge && !realUser.badges.includes(badge._id)) {
@@ -588,41 +494,40 @@ app.post('/api/challenges/:challengeId/submit', async (req, res) => {
       xpEarned: passedAllTests ? challenge.totalXP : 0,
       newBadge: earnedBadge
     });
+
   } catch (error) {
-    console.error("Submission Error:", error);
     res.status(500).json({ error: 'Failed to process submission' });
   }
 });
 
-// Fetch ALL active challenges for the Quest Board
-app.get('/api/challenges', async (req, res) => {
+// Fallback manual execution route
+app.post('/api/execute', async (req, res) => {
+  const { code, languageId } = req.body;
   try {
-    const now = new Date();
-    // Finds active challenges where expiresAt is strictly in the future!
-    const challenges = await Challenge.find({ 
-      active: true,
-      expiresAt: { $gt: now } 
-    }).sort({ totalXP: 1 });
-    
-    res.status(200).json(challenges);
-  } catch (err) {
-    res.status(500).json({ error: "Failed to fetch quests" });
+    const submission = await axios.post('https://judge0-ce.p.rapidapi.com/submissions?base64_encoded=false&wait=true', {
+      language_id: languageId,
+      source_code: code
+    }, {
+      headers: {
+        'content-type': 'application/json',
+        'X-RapidAPI-Key': process.env.JUDGE0_API_KEY,
+        'X-RapidAPI-Host': 'judge0-ce.p.rapidapi.com'
+      }
+    });
+
+    res.json({
+      stdout: submission.data.stdout,
+      stderr: submission.data.stderr,
+      compile_output: submission.data.compile_output
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to execute code' });
   }
 });
 
-// Fetch a specific challenge by ID
-app.get('/api/challenges/:id', async (req, res) => {
-  try {
-    const challenge = await Challenge.findById(req.params.id);
-    if (!challenge) return res.status(404).json({ error: "Challenge not found" });
-    res.status(200).json(challenge);
-  } catch (err) {
-    res.status(500).json({ error: "Failed to fetch challenge" });
-  }
-});
 
 // =========================================================
-// ADMIN ZONE
+// ADMIN ZONE & GOD MODE
 // =========================================================
 
 const verifyAdmin = async (uid) => {
@@ -630,14 +535,30 @@ const verifyAdmin = async (uid) => {
   return user && user.isAdmin === true;
 };
 
-// Fetch ALL users
+// Grant God Mode
+app.post('/api/dev/make-admin', async (req, res) => {
+  const { uid } = req.body;
+  try {
+    const user = await User.findOne({ firebaseUid: uid });
+    if (!user) return res.status(404).json({ error: "Adventurer not found." });
+
+    user.xp = 9999999;
+    user.level = calculateLevel(user.xp);
+    user.isAdmin = true; 
+    await user.save();
+
+    res.status(200).json({ message: "God Mode activated. Admin privileges granted.", user });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to grant Admin powers." });
+  }
+});
+
+// Get all users
 app.get('/api/admin/users', async (req, res) => {
   const { adminUid } = req.query;
   try {
     if (!(await verifyAdmin(adminUid))) return res.status(403).json({ error: "Access Denied." });
-    
-    const allUsers = await User.find().sort({ createdAt: -1 });
-    res.status(200).json(allUsers);
+    res.status(200).json(await User.find().sort({ createdAt: -1 }));
   } catch (err) {
     res.status(500).json({ error: "Failed to fetch realm data." });
   }
@@ -656,7 +577,6 @@ app.delete('/api/admin/guilds/:id', async (req, res) => {
       { _id: { $in: guild.members } },
       { $set: { isInGuild: false, guildID: null } }
     );
-
     await Guild.findByIdAndDelete(req.params.id);
     res.status(200).json({ message: "Guild has been eradicated." });
   } catch (err) {
@@ -674,9 +594,7 @@ app.delete('/api/admin/users/:id', async (req, res) => {
     if (!targetUser) return res.status(404).json({ error: "User not found." });
 
     if (targetUser.isInGuild && targetUser.guildID) {
-      await Guild.findByIdAndUpdate(targetUser.guildID, {
-        $pull: { members: targetUser._id }
-      });
+      await Guild.findByIdAndUpdate(targetUser.guildID, { $pull: { members: targetUser._id } });
     }
 
     await User.findByIdAndDelete(req.params.id);
@@ -686,12 +604,7 @@ app.delete('/api/admin/users/:id', async (req, res) => {
   }
 });
 
-
-// =========================================================
-// ADMIN ZONE (GOD MODE) - CRUD EXTENSION
-// =========================================================
-
-// UPDATE a User
+// Manually update user
 app.patch('/api/admin/users/:id', async (req, res) => {
   const { adminUid, username, xp, isAdmin, isQualified } = req.body;
   try {
@@ -700,35 +613,14 @@ app.patch('/api/admin/users/:id', async (req, res) => {
     const updateData = { username, xp, isAdmin, isQualified };
     if (xp !== undefined) updateData.level = calculateLevel(xp);
 
-    const updatedUser = await User.findByIdAndUpdate(req.params.id, updateData, { new: true });
+    const updatedUser = await User.findByIdAndUpdate(req.params.id, updateData, { returnDocument: 'after' });
     res.status(200).json(updatedUser);
   } catch (err) { 
     res.status(500).json({ error: "Failed to update user." }); 
   }
 });
 
-// CREATE a User manually
-app.post('/api/admin/users', async (req, res) => {
-  const { adminUid, username, firebaseUid, xp } = req.body;
-  try {
-    if (!(await verifyAdmin(adminUid))) return res.status(403).json({ error: "Access Denied." });
-    
-    const newUser = new User({
-      username: username || "Manual_Entry",
-      firebaseUid: firebaseUid || `manual_${Date.now()}`,
-      xp: xp || 0,
-      level: calculateLevel(xp || 0),
-      isQualified: true
-    });
- 
-    await newUser.save();
-    res.status(201).json(newUser);
-  } catch (err) { 
-    res.status(500).json({ error: "Failed to create user." }); 
-  }
-});
-
-// UPDATE a Guild
+// Manually update guild
 app.patch('/api/admin/guilds/:id', async (req, res) => {
   const { adminUid, guildName, guildDescription } = req.body;
   try {
@@ -737,7 +629,7 @@ app.patch('/api/admin/guilds/:id', async (req, res) => {
     const updatedGuild = await Guild.findByIdAndUpdate(
       req.params.id, 
       { guildName, guildDescription }, 
-      { new: true }
+      { returnDocument: 'after' }
     );
     res.status(200).json(updatedGuild);
   } catch (err) { 
@@ -745,33 +637,9 @@ app.patch('/api/admin/guilds/:id', async (req, res) => {
   }
 });
 
-// CREATE a Guild manually
-app.post('/api/admin/guilds', async (req, res) => {
-  const { adminUid, guildName, guildDescription, targetAdminId } = req.body;
-  try {
-    if (!(await verifyAdmin(adminUid))) return res.status(403).json({ error: "Access Denied." });
-    
-    const creatorId = targetAdminId || (await User.findOne({ firebaseUid: adminUid }))._id;
-
-    const newGuild = new Guild({
-      guildName: guildName || "System_Forged_Guild",
-      guildDescription: guildDescription || "Forged by the Gods.",
-      adminID: creatorId,
-      members: [creatorId]
-    });
-  
-    await newGuild.save();
-    
-    await User.findByIdAndUpdate(creatorId, { isInGuild: true, guildID: newGuild._id });
-    res.status(201).json(newGuild);
-  } catch (err) { 
-    res.status(500).json({ error: "Failed to force-create guild." }); 
-  }
-});
-
 
 // =========================================================
-// SOCKET.IO (REAL-TIME ROOMS)
+// SOCKET.IO REAL-TIME FORGE ROOMS
 // =========================================================
 
 const roomMemory = {}; 
@@ -781,10 +649,7 @@ io.on('connection', (socket) => {
 
   socket.on('join_guild_room', ({ guildId, username, uid }) => {
     socket.join(guildId); 
-
-    socket.data.guildId = guildId;
-    socket.data.username = username;
-    socket.data.uid = uid;
+    socket.data = { guildId, username, uid };
 
     const systemMessage = {
       sender: 'System',
@@ -794,7 +659,6 @@ io.on('connection', (socket) => {
     };
 
     if (!roomMemory[guildId]) roomMemory[guildId] = [];
-    
     roomMemory[guildId].push(systemMessage);
     if (roomMemory[guildId].length > 50) roomMemory[guildId].shift();
 
@@ -804,22 +668,19 @@ io.on('connection', (socket) => {
 
   socket.on('leave_guild_room', (guildId) => {
     socket.leave(guildId);
-    
     if (socket.data.username) {
-      const systemMessage = {
+      const msg = {
         sender: 'System',
         text: `${socket.data.username} has left the Forge.`,
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         isSystem: true
       };
-      
       if (roomMemory[guildId]) {
-        roomMemory[guildId].push(systemMessage);
+        roomMemory[guildId].push(msg);
         if (roomMemory[guildId].length > 50) roomMemory[guildId].shift();
       }
-      socket.to(guildId).emit('receive_message', systemMessage);
+      socket.to(guildId).emit('receive_message', msg);
     }
-
     const roomSize = io.sockets.adapter.rooms.get(guildId)?.size || 0;
     if (roomSize === 0) delete roomMemory[guildId]; 
   });
@@ -827,22 +688,19 @@ io.on('connection', (socket) => {
   socket.on('disconnect', () => {
     const { guildId, username } = socket.data;
     if (guildId && username) {
-      const systemMessage = {
+      const msg = {
         sender: 'System',
         text: `${username} disconnected.`,
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         isSystem: true
       };
-      
       if (roomMemory[guildId]) {
-        roomMemory[guildId].push(systemMessage);
+        roomMemory[guildId].push(msg);
         if (roomMemory[guildId].length > 50) roomMemory[guildId].shift();
       }
-      socket.to(guildId).emit('receive_message', systemMessage);
+      socket.to(guildId).emit('receive_message', msg);
     }
   });
-
-  // --- STANDARD CHAT AND CODE SYNCS ---
 
   socket.on('code_update', ({ guildId, code }) => {
     socket.to(guildId).emit('receive_code', code);
@@ -866,169 +724,7 @@ io.on('connection', (socket) => {
   });
 });
 
-// =========================================================
-// STANDARD EXECUTION (JUDGE0)
-// =========================================================
 
-app.post('/api/execute', async (req, res) => {
-  const { code, languageId } = req.body;
-
-  const options = {
-    method: 'POST',
-    url: 'https://judge0-ce.p.rapidapi.com/submissions',
-    params: { base64_encoded: 'false', fields: '*' },
-    headers: {
-      'content-type': 'application/json',
-      'Content-Type': 'application/json',
-      'X-RapidAPI-Key': process.env.JUDGE0_API_KEY,
-      'X-RapidAPI-Host': 'judge0-ce.p.rapidapi.com'
-    },
-    data: {
-      language_id: languageId,
-      source_code: code
-    }
-  };
-
-  try {
-    const submission = await axios.request(options);
-    const token = submission.data.token;
-    
-    let result;
-    let statusId = 1; 
-    
-    while (statusId === 1 || statusId === 2) {
-      await new Promise(resolve => setTimeout(resolve, 500)); 
-
-      const response = await axios.get(
-        `https://judge0-ce.p.rapidapi.com/submissions/${token}?base64_encoded=false`,
-        {
-          headers: {
-            'X-RapidAPI-Key': process.env.JUDGE0_API_KEY,
-            'X-RapidAPI-Host': 'judge0-ce.p.rapidapi.com'
-          }
-        }
-      );
-      result = response.data;
-      statusId = result.status.id;
-    }
-
-    res.json({
-      stdout: result.stdout,
-      stderr: result.stderr,
-      compile_output: result.compile_output,
-      time: result.time,
-      memory: result.memory
-    });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Failed to execute code' });
-  }
-});
-
-// --- INIT ---
+// --- SERVER START ---
 const PORT = process.env.PORT || 5000;
-server.listen(PORT, () => console.log(`🚀 Server on port ${PORT}`));
-
-// =========================================================
-// TEMPORARY SEEDER ROUTES
-// =========================================================
-
-// Temporary Seeder Route for Badges
-app.post('/api/seed-badges', async (req, res) => {
-  try {
-    const badgesToCreate = [
-      { badgeTitle: "First Blood", badgeDescription: "Submitted your first line of code in the Forge." },
-      { badgeTitle: "Hackathon Hero", badgeDescription: "Won 1st place in a guild challenge." },
-      { badgeTitle: "Bug Squasher", badgeDescription: "Successfully passed all test cases on a hard challenge." },
-      // --- NEW DB BADGES ---
-      { badgeTitle: "Early Adopter", badgeDescription: "Joined the realm during its first age." },
-      { badgeTitle: "Trial Survivor", badgeDescription: "Passed the preliminary entry test." },
-      { badgeTitle: "Team Player", badgeDescription: "Sworn to a Guild." }
-    ];
-
-    await Badge.insertMany(badgesToCreate);
-    res.status(200).send("Badges successfully seeded into MongoDB!");
-  } catch (error) {
-    res.status(500).send("Error seeding badges: " + error.message);
-  }
-});
-
-// Run this ONCE to fix your existing users!
-app.post('/api/sync-badges', async (req, res) => {
-  try {
-    const users = await User.find();
-    const trialBadge = await Badge.findOne({ badgeTitle: "Trial Survivor" });
-    const teamBadge = await Badge.findOne({ badgeTitle: "Team Player" });
-    const earlyBadge = await Badge.findOne({ badgeTitle: "Early Adopter" });
-
-    for (let user of users) {
-      if (earlyBadge && !user.badges.includes(earlyBadge._id)) user.badges.push(earlyBadge._id);
-      if (user.isQualified && trialBadge && !user.badges.includes(trialBadge._id)) user.badges.push(trialBadge._id);
-      if (user.isInGuild && teamBadge && !user.badges.includes(teamBadge._id)) user.badges.push(teamBadge._id);
-      await user.save();
-    }
-    res.send("All existing users have been retroactively awarded their missing DB Badges!");
-  } catch (err) {
-    res.status(500).send(err.message);
-  }
-});
-
-// Temporary Seeder Route
-app.post('/api/seed-challenge', async (req, res) => {
-  try {
-    const soloChallenge = new Challenge({
-      title: "The String Reverser (Solo)",
-      description: "Write a program that takes a string as input and prints it backwards.",
-      totalXP: 500,
-      challengeType: 'solo',
-      active: true,
-      testCases: [ { input: "hello\n", expectedOutput: "olleh" } ]
-    });
-   
-    const guildChallenge = new Challenge({
-      title: "The Guild Array Sorter (Guild Only)",
-      description: "Sort an array of numbers. Only sworn Guild members can attempt this!",
-      totalXP: 1000,
-      challengeType: 'guild',
-      active: true,
-      testCases: [ { input: "3 1 2\n", expectedOutput: "1 2 3" } ]
-    });
-
-    await soloChallenge.save();
-    await guildChallenge.save();
-
-    res.json({ message: "Solo and Guild Challenges Created successfully!" });
-  } catch (err) {
-    res.status(500).send(err.message);
-  }
-});
-
-// Temporary Seeder Route for a Time-Bounded Challenge
-app.post('/api/seed-challenge', async (req, res) => {
-  try {
-    // Calculate exactly 42 hours from right now
-    const expirationDate = new Date();
-    expirationDate.setHours(expirationDate.getHours() + 42);
-
-    const timedChallenge = new Challenge({
-      title: "The 42-Hour Sprint",
-      description: "A time-sensitive trial! Sort the incoming data perfectly before the clock hits zero.",
-      totalXP: 1500,
-      challengeType: 'guild', // Can be 'solo' or 'guild'
-      active: true,
-      expiresAt: expirationDate, // Sets the 42-hour deadline in DB
-      testCases: [
-        { input: "5 4 3 2 1\n", expectedOutput: "1 2 3 4 5" }
-      ]
-    });
-   
-    const saved = await timedChallenge.save();
-    res.json({ 
-      message: "Timed Challenge Created!", 
-      expiresAt: expirationDate.toLocaleString(),
-      challengeId: saved._id 
-    });
-  } catch (err) {
-    res.status(500).send(err.message);
-  }
-});
+server.listen(PORT, () => console.log(`🚀 GuildDev Server live on port ${PORT}`));

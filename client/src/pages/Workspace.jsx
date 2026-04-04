@@ -166,9 +166,10 @@ const Workspace = () => {
     }
   };
 
+  const hasConquered = submissionResult?.success || submissionResult?.output?.includes('already conquered');
   const handleLeaveForge = async () => {
-    // If they have an active quest, and they haven't successfully passed it yet...
-    if (activeChallenge && (!submissionResult || !submissionResult.success)) {
+    // FIX: Now uses hasConquered instead of submissionResult.success
+    if (activeChallenge && !hasConquered) {
       const confirmRetreat = window.confirm(
         "Leaving the Forge without conquering the trial? \n\nThis bounty and its XP might not be available the next time you return. Are you sure you want to retreat?"
       );
@@ -216,7 +217,12 @@ const Workspace = () => {
 
       setSubmissionResult(response.data);
     } catch (error) {
-      setSubmissionResult({ success: false, output: "System Error: Failed to reach the Judges." });
+      // Extract the actual backend error message instead of the hardcoded one
+      console.error("Detailed Submission Error:", error.response?.data || error.message);
+      setSubmissionResult({ 
+        success: false, 
+        output: error.response?.data?.error || "System Error: Failed to reach the Judges." 
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -268,8 +274,17 @@ const Workspace = () => {
             <Users size={16} /> Live Sync
           </span>
           
-          <button onClick={handleLeaveForge} className="text-rose-400 hover:text-rose-300 transition-colors flex items-center gap-2 text-sm font-bold ml-2">
-            <LogOut size={16} /> Leave
+          {/* Dynamic Leave/Victory Button */}
+          <button 
+            onClick={handleLeaveForge} 
+            className={`transition-colors flex items-center gap-2 text-sm font-bold ml-2 ${
+              hasConquered 
+                ? 'text-emerald-400 hover:text-emerald-300' 
+                : 'text-rose-400 hover:text-rose-300'
+            }`}
+          >
+            {hasConquered ? <Trophy size={16} /> : <LogOut size={16} />}
+            {hasConquered ? 'Claim Victory & Exit' : 'Leave'}
           </button>
         </div>
       </header>
