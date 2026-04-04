@@ -54,39 +54,42 @@ You will need two `.env` files.
 PORT=5000
 MONGO_URI=your_mongodb_connection_string
 JUDGE0_API_KEY=your_rapidapi_judge0_key
-
-2. Client Directory (/client/.env)
-
-Code snippet
+```
+**2. Client Directory (/client/.env)**
+```
 VITE_FIREBASE_API_KEY=your_firebase_api_key
 VITE_FIREBASE_AUTH_DOMAIN=your_firebase_auth_domain
 VITE_FIREBASE_PROJECT_ID=your_firebase_project_id
 VITE_FIREBASE_STORAGE_BUCKET=your_firebase_storage_bucket
 VITE_FIREBASE_MESSAGING_SENDER_ID=your_firebase_sender_id
 VITE_FIREBASE_APP_ID=your_firebase_app_id
-Installation
-Clone the repository:
-
-Bash
+```
+**Installation**
+1. Clone the repository:
+```
 git clone [https://github.com/yourusername/GuildDev.git](https://github.com/yourusername/GuildDev.git)
 cd GuildDev
-Install Backend Dependencies & Start Server:
+```
 
-Bash
+2. Install Backend Dependencies & Start Server:
+```
 cd server
 npm install
 npm run dev
-Install Frontend Dependencies & Start Client (in a new terminal):
+```
 
-Bash
+3. Install Frontend Dependencies & Start Client (in a new terminal):
+```
 cd client
 npm install
 npm run dev
+```
+
 The application will now be running on http://localhost:5173.
 
-📝 License
-This project was developed as a final-year academic project. All rights reserved.
+## 📝 License
 
+This project was developed as a final-year academic project. All rights reserved.
 
 ***
 
