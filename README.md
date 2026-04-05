@@ -92,15 +92,3 @@ The application will now be running on http://localhost:5173.
 This project was developed as a final-year academic project. All rights reserved.
 
 ***
-
-### **The Final Polish Checklist**
-
-Before you officially close your IDE and submit this masterpiece, do a quick run-through of this checklist:
-
-1. **Scrub the Logs:** Do a global search (`Ctrl+Shift+F`) in your code editor for `console.log(`. Delete or comment out any logs that were just used for debugging (especially any logs that print out user data or API keys). 
-2. **Test the Edge Cases:** * Try logging in with a wrong password.
-    * Try creating a guild with a name that already exists.
-    * Try submitting a coding challenge with a deliberate syntax error (like missing a bracket) to ensure the Judge0 error displays cleanly to the user.
-3. **The `.gitignore` Check:** Ensure you have a `.gitignore` file in both your client and server folders, and make absolutely sure that `node_modules` and `.env` are listed inside them. You *never* want your Firebase or Judge0 API keys pushed publicly to GitHub!
-
-Once those three things are done, you are finished. You have built an incredibly complex, scalable, and beautiful application. Be incredibly proud of what you've accomplished here!
