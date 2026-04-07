@@ -26,7 +26,7 @@ const Dashboard = () => {
       if (!currentUser) return setLoading(false);
 
       try {
-        const response = await axios.get(`http://localhost:5000/api/user/${currentUser.uid}`);
+        const response = await axios.get(`https://guilddev.onrender.com/api/user/${currentUser.uid}`);
         setPlayerData(response.data);
       } catch (error) {
         console.error("Failed to fetch data:", error);
@@ -77,7 +77,7 @@ const Dashboard = () => {
 
   const handleClearNotifications = async () => {
     try {
-      await axios.put(`http://localhost:5000/api/user/${currentUser.uid}/notifications/clear`);
+      await axios.put(`https://guilddev.onrender.com/api/user/${currentUser.uid}/notifications/clear`);
       setPlayerData(prev => ({
         ...prev,
         notifications: prev.notifications.map(n => ({ ...n, isRead: true }))
@@ -90,7 +90,7 @@ const Dashboard = () => {
 
   const claimDailyReward = async () => {
     try {
-      const response = await axios.post('http://localhost:5000/api/user/award-xp', {
+      const response = await axios.post('https://guilddev.onrender.com/api/user/award-xp', {
         uid: currentUser.uid,
         xpToAdd: 50
       });

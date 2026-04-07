@@ -14,7 +14,7 @@ const Profile = () => {
     const fetchProfile = async () => {
       try {
         // Fetch whoever's ID is in the URL
-        const response = await axios.get(`http://localhost:5000/api/user/${uid}`);
+        const response = await axios.get(`https://guilddev.onrender.com/api/user/${uid}`);
         setPlayerData(response.data);
       } catch (err) {
         console.error("Failed to fetch profile:", err);

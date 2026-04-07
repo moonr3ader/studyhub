@@ -25,7 +25,7 @@ const MyGuild = () => {
 
     const fetchGuildData = async () => {
       try {
-        const response = await axios.get(`http://localhost:5000/api/guilds/${id}`);
+        const response = await axios.get(`https://guilddev.onrender.com/api/guilds/${id}`);
         setGuild(response.data);
         // Prep edit fields in case they are the leader
         setEditData({ name: response.data.guildName, desc: response.data.guildDescription });
@@ -42,7 +42,7 @@ const MyGuild = () => {
   // Save new guild details to DB (Leader Only)
   const handleSaveGuild = async () => {
     try {
-      const res = await axios.patch(`http://localhost:5000/api/guilds/${id}`, {
+      const res = await axios.patch(`https://guilddev.onrender.com/api/guilds/${id}`, {
         adminUid: currentUser.uid,
         guildName: editData.name,
         guildDescription: editData.desc
@@ -59,7 +59,7 @@ const MyGuild = () => {
   const handleKickMember = async (memberId) => {
     if (!window.confirm("Are you sure you want to banish this adventurer?")) return;
     try {
-      await axios.post(`http://localhost:5000/api/guilds/${id}/kick`, {
+      await axios.post(`https://guilddev.onrender.com/api/guilds/${id}/kick`, {
         adminUid: currentUser.uid,
         targetMemberId: memberId
       });
@@ -73,7 +73,7 @@ const MyGuild = () => {
   // Moves a user from the 'pending' list to the 'active' roster.
   const handleAcceptApplicant = async (targetUserId) => {
     try {
-      const response = await axios.post(`http://localhost:5000/api/guilds/${id}/accept`, {
+      const response = await axios.post(`https://guilddev.onrender.com/api/guilds/${id}/accept`, {
         adminUid: currentUser.uid,
         targetUserId: targetUserId
       });
@@ -96,7 +96,7 @@ const MyGuild = () => {
   // Removes the user from the pending list and declines their application.
   const handleDeclineApplicant = async (targetUserId) => {
     try {
-      const response = await axios.post(`http://localhost:5000/api/guilds/${id}/decline`, {
+      const response = await axios.post(`https://guilddev.onrender.com/api/guilds/${id}/decline`, {
         targetUserId: targetUserId
       });
 

@@ -68,7 +68,7 @@ const SoloWorkspace = () => {
 
     const currentCode = editorRef.current.getValue();
     try {
-      const response = await axios.post('http://localhost:5000/api/execute', {
+      const response = await axios.post('https://guilddev.onrender.com/api/execute', {
         code: currentCode,
         languageId: LANGUAGES[activeLang].judgeId
       });
@@ -88,7 +88,7 @@ const SoloWorkspace = () => {
     setShowQuestModal(true);
     setSubmissionResult(null); 
     try {
-      const res = await axios.get(`http://localhost:5000/api/challenges/${specificId}`);
+      const res = await axios.get(`https://guilddev.onrender.com/api/challenges/${specificId}`);
       setActiveChallenge(res.data);
     } catch (error) {
       console.error("Failed to load quest data.", error);
@@ -102,7 +102,7 @@ const SoloWorkspace = () => {
 
     const currentCode = editorRef.current.getValue();
     try {
-      const response = await axios.post(`http://localhost:5000/api/challenges/${activeChallenge._id}/submit`, {
+      const response = await axios.post(`https://guilddev.onrender.com/api/challenges/${activeChallenge._id}/submit`, {
         userId: currentUser.uid, 
         guildId: null, // Changed 'solo' to null to prevent crash in MongoDB
         code: currentCode,

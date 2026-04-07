@@ -32,7 +32,7 @@ const Settings = () => {
   useEffect(() => {
     const fetchUserData = async () => {
       try {
-        const res = await axios.get(`http://localhost:5000/api/user/${currentUser.uid}`);
+        const res = await axios.get(`https://guilddev.onrender.com/api/user/${currentUser.uid}`);
         setPlayerData(res.data);
         setUsername(res.data.username);
       } catch (err) {
@@ -53,7 +53,7 @@ const Settings = () => {
     setMessage({ type: '', text: '' });
 
     try {
-      await axios.patch(`http://localhost:5000/api/user/${currentUser.uid}`, { username });
+      await axios.patch(`https://guilddev.onrender.com/api/user/${currentUser.uid}`, { username });
       setMessage({ type: 'success', text: 'Guild Registry updated successfully!' });
     } catch (err) {
       // Look for the specific backend error, otherwise use a fallback

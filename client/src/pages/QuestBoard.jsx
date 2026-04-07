@@ -15,11 +15,11 @@ const QuestBoard = () => {
     const fetchData = async () => {
       try {
         // Fetch the user's profile to check if they are in a guild
-        const userRes = await axios.get(`http://localhost:5000/api/user/${currentUser.uid}`);
+        const userRes = await axios.get(`https://guilddev.onrender.com/api/user/${currentUser.uid}`);
         setPlayerData(userRes.data);
 
         // Fetch all active quests
-        const questRes = await axios.get('http://localhost:5000/api/challenges');
+        const questRes = await axios.get('https://guilddev.onrender.com/api/challenges');
         setChallenges(questRes.data);
       } catch (error) {
         console.error("Failed to load Quest Board data", error);

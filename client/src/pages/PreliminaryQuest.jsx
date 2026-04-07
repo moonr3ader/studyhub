@@ -27,7 +27,7 @@ const PreliminaryQuest = () => {
   useEffect(() => {
     const fetchPlayerData = async () => {
       try {
-        const res = await axios.get(`http://localhost:5000/api/user/${currentUser.uid}`);
+        const res = await axios.get(`https://guilddev.onrender.com/api/user/${currentUser.uid}`);
         setPlayerData(res.data);
       } catch (err) {
         if (err.response?.status !== 404) setError("Failed to read user records.");
@@ -42,7 +42,7 @@ const PreliminaryQuest = () => {
   useEffect(() => {
     const fetchTrial = async () => {
       try {
-        const res = await axios.get('http://localhost:5000/api/questions/random');
+        const res = await axios.get('https://guilddev.onrender.com/api/questions/random');
         setTrialData(res.data);
       } catch (err) {
         setTrialError("The trial archives are currently sealed.");
@@ -82,7 +82,7 @@ const PreliminaryQuest = () => {
     e.preventDefault();
     setError('');
     try {
-      const res = await axios.post('http://localhost:5000/api/user/qualify', {
+      const res = await axios.post('https://guilddev.onrender.com/api/user/qualify', {
         uid: currentUser.uid,
         email: currentUser.email,
         username: username
@@ -103,7 +103,7 @@ const PreliminaryQuest = () => {
   const handleDailyClaim = async () => {
     setClaimStatus('');
     try {
-      const res = await axios.post('http://localhost:5000/api/user/award-xp', {
+      const res = await axios.post('https://guilddev.onrender.com/api/user/award-xp', {
         uid: currentUser.uid,
         xpToAdd: 50
       });

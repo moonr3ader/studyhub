@@ -9,7 +9,7 @@ import * as Y from 'yjs';
 import { WebsocketProvider } from 'y-websocket';
 import { MonacoBinding } from 'y-monaco';
 
-const socket = io('http://localhost:5000'); 
+const socket = io('https://guilddev.onrender.com'); 
 
 const LANGUAGES = {
   javascript: { 
@@ -109,7 +109,7 @@ const Workspace = () => {
     new MonacoBinding(ytext, editor.getModel(), new Set([editor]), provider.awareness);
     
     // Load initial code from DB, or load default template
-    axios.get(`http://localhost:5000/api/guilds/${guildId}`)
+    axios.get(`https://guilddev.onrender.com/api/guilds/${guildId}`)
       .then(res => {
         if (res.data && res.data.savedCode && ytext.toString() === '') {
           ytext.insert(0, res.data.savedCode);
@@ -145,7 +145,7 @@ const Workspace = () => {
 
     const currentCode = editorRef.current.getValue();
     try {
-      const response = await axios.post('http://localhost:5000/api/execute', {
+      const response = await axios.post('https://guilddev.onrender.com/api/execute', {
         code: currentCode,
         languageId: LANGUAGES[activeLang].judgeId
       });
@@ -169,7 +169,7 @@ const Workspace = () => {
     setIsSaving(true);
     const currentCode = editorRef.current.getValue();
     try {
-      await axios.put(`http://localhost:5000/api/guilds/${guildId}/save`, { code: currentCode });
+      await axios.put(`https://guilddev.onrender.com/api/guilds/${guildId}/save`, { code: currentCode });
       setOutput((prev) => `[System]: Code successfully saved to Forge database.\n\n${prev}`);
     } catch (error) {
       setOutput((prev) => `[System Error]: Failed to save code to database.\n\n${prev}`);
@@ -202,8 +202,8 @@ const Workspace = () => {
     try {
       const targetId = specificId || questIdFromBoard;
       const url = targetId 
-        ? `http://localhost:5000/api/challenges/${targetId}`
-        : `http://localhost:5000/api/challenges/active`;
+        ? `https://guilddev.onrender.com/api/challenges/${targetId}`
+        : `https://guilddev.onrender.com/api/challenges/active`;
 
       const res = await axios.get(url);
       setActiveChallenge(res.data);
@@ -219,7 +219,7 @@ const Workspace = () => {
 
     const currentCode = editorRef.current.getValue();
     try {
-      const response = await axios.post(`http://localhost:5000/api/challenges/${activeChallenge._id}/submit`, {
+      const response = await axios.post(`https://guilddev.onrender.com/api/challenges/${activeChallenge._id}/submit`, {
         userId: currentUser.uid, 
         guildId: guildId,
         code: currentCode,

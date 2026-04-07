@@ -19,8 +19,8 @@ const GuildHub = () => {
   const fetchGuilds = async () => {
     try {
       const [guildsRes, leaderboardRes] = await Promise.all([
-        axios.get('http://localhost:5000/api/guilds'),
-        axios.get('http://localhost:5000/api/guilds/leaderboard')
+        axios.get('https://guilddev.onrender.com/api/guilds'),
+        axios.get('https://guilddev.onrender.com/api/guilds/leaderboard')
       ]);
       setGuilds(guildsRes.data);
       setLeaderboard(leaderboardRes.data);
@@ -42,7 +42,7 @@ const GuildHub = () => {
     if (!currentUser) return alert("You must be logged in!");
 
     try {
-      await axios.post('http://localhost:5000/api/guilds/create', {
+      await axios.post('https://guilddev.onrender.com/api/guilds/create', {
         name: newGuildName,
         description: newGuildDesc,
         adminUid: currentUser.uid
@@ -62,7 +62,7 @@ const GuildHub = () => {
     if (!currentUser) return alert("You must be logged in to join a team!");
 
     try {
-      const response = await axios.post('http://localhost:5000/api/guilds/join', {
+      const response = await axios.post('https://guilddev.onrender.com/api/guilds/join', {
         uid: currentUser.uid,
         guildId: guildId
       });

@@ -18,9 +18,9 @@ const AdminConsole = () => {
 
   const fetchAdminData = async () => {
     try {
-      const usersRes = await axios.get(`http://localhost:5000/api/admin/users?adminUid=${currentUser.uid}`);
+      const usersRes = await axios.get(`https://guilddev.onrender.com/api/admin/users?adminUid=${currentUser.uid}`);
       setUsers(usersRes.data);
-      const guildsRes = await axios.get('http://localhost:5000/api/guilds');
+      const guildsRes = await axios.get('https://guilddev.onrender.com/api/guilds');
       setGuilds(guildsRes.data);
     } catch (err) {
       alert("Unauthorized Access. The system rejects you.");
@@ -42,10 +42,10 @@ const AdminConsole = () => {
     try {
       const payload = { ...userModal.data, adminUid: currentUser.uid };
       if (userModal.isEdit) {
-        const res = await axios.patch(`http://localhost:5000/api/admin/users/${userModal.data._id}`, payload);
+        const res = await axios.patch(`https://guilddev.onrender.com/api/admin/users/${userModal.data._id}`, payload);
         setUsers(users.map(u => u._id === res.data._id ? res.data : u));
       } else {
-        const res = await axios.post(`http://localhost:5000/api/admin/users`, payload);
+        const res = await axios.post(`https://guilddev.onrender.com/api/admin/users`, payload);
         setUsers([res.data, ...users]);
       }
       setUserModal({ show: false, isEdit: false, data: {} });
@@ -55,7 +55,7 @@ const AdminConsole = () => {
   const handleDeleteUser = async (userId, username) => {
     if (!window.confirm(`CRITICAL: Banish "${username}" entirely?`)) return;
     try {
-      await axios.delete(`http://localhost:5000/api/admin/users/${userId}`, { data: { adminUid: currentUser.uid } });
+      await axios.delete(`https://guilddev.onrender.com/api/admin/users/${userId}`, { data: { adminUid: currentUser.uid } });
       setUsers(users.filter(u => u._id !== userId));
     } catch (err) { alert("Failed to banish adventurer."); }
   };
@@ -68,10 +68,10 @@ const AdminConsole = () => {
     try {
       const payload = { ...guildModal.data, adminUid: currentUser.uid };
       if (guildModal.isEdit) {
-        const res = await axios.patch(`http://localhost:5000/api/admin/guilds/${guildModal.data._id}`, payload);
+        const res = await axios.patch(`https://guilddev.onrender.com/api/admin/guilds/${guildModal.data._id}`, payload);
         setGuilds(guilds.map(g => g._id === res.data._id ? res.data : g));
       } else {
-        const res = await axios.post(`http://localhost:5000/api/admin/guilds`, payload);
+        const res = await axios.post(`https://guilddev.onrender.com/api/admin/guilds`, payload);
         setGuilds([res.data, ...guilds]);
       }
       setGuildModal({ show: false, isEdit: false, data: {} });
@@ -81,7 +81,7 @@ const AdminConsole = () => {
   const handleDeleteGuild = async (guildId, guildName) => {
     if (!window.confirm(`CRITICAL: Eradicate guild "${guildName}"?`)) return;
     try {
-      await axios.delete(`http://localhost:5000/api/admin/guilds/${guildId}`, { data: { adminUid: currentUser.uid } });
+      await axios.delete(`https://guilddev.onrender.com/api/admin/guilds/${guildId}`, { data: { adminUid: currentUser.uid } });
       setGuilds(guilds.filter(g => g._id !== guildId));
     } catch (err) { alert("Failed to destroy guild."); }
   };

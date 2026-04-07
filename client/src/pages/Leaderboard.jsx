@@ -13,8 +13,8 @@ const Leaderboard = () => {
     const fetchLeaderboards = async () => {
       try {
         const [guildRes, playerRes] = await Promise.all([
-          axios.get('http://localhost:5000/api/guilds/leaderboard'),
-          axios.get('http://localhost:5000/api/users/leaderboard')
+          axios.get('https://guilddev.onrender.com/api/guilds/leaderboard'),
+          axios.get('https://guilddev.onrender.com/api/users/leaderboard')
         ]);
         setGuilds(guildRes.data);
         setPlayers(playerRes.data);
