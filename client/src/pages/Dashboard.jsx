@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
-import OnboardingSidebar from '../components/OnboardingSidebar';
+import OnboardingChecklist from '../components/OnboardingChecklist';
 import { useNavigate } from 'react-router-dom';
 import { Award, Clock, LogOut, ShieldAlert, Trophy, Map, Settings, Bell, CheckCircle, Info } from 'lucide-react';
-
 
 const Dashboard = () => {
   // ==========================================
@@ -181,7 +180,7 @@ const Dashboard = () => {
       </nav>
 
       {/* --- MAIN LAYOUT CONTAINER --- */}
-      <main className="w-full max-w-7xl p-6 md:p-10 flex-1 flex flex-col lg:flex-row gap-8 mx-auto">
+      <main className="w-full max-w-7xl p-6 md:p-10 flex-1 flex flex-col mx-auto">
         
         {/* --- LEFT COLUMN: CORE DASHBOARD --- */}
         <div className="flex-1 w-full flex flex-col">
@@ -266,6 +265,11 @@ const Dashboard = () => {
               )}
             </div>
           </header>
+
+          {/* --- NEW CHECKLIST SECTION --- */}
+          {playerData.isQualified && (
+            <OnboardingChecklist />
+          )}
 
           {/* --- ACTION/STATUS CARD --- */}
           <div className="mb-10">
@@ -399,13 +403,6 @@ const Dashboard = () => {
                 <div className="text-center p-8 bg-[#0B0E14] rounded-2xl border border-dashed border-white/10 text-slate-500 font-mono text-sm md:text-base">
                   Your quest log is empty. Complete the trial above to begin!
                 </div>
-              )}
-
-              {/* --- RIGHT COLUMN: ONBOARDING SIDEBAR --- */}
-              {playerData.isQualified && (
-                <aside className="w-full lg:w-80 shrink-0">
-                  <OnboardingSidebar />
-                  </aside>
               )}
             </div>
           </div>
