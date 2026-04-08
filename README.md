@@ -37,6 +37,10 @@ GuildDev is a full-stack, gamified collaborative coding platform designed to ble
 
 ---
 
+# Application is now live in [GuildDev](https://guilddev-rust.vercel.app/)
+
+---
+
 ## 🚀 Getting Started
 
 ### Prerequisites
@@ -86,6 +90,8 @@ npm run dev
 ```
 
 The application will now be running on http://localhost:5173.
+
+
 
 ## 📝 License
 
