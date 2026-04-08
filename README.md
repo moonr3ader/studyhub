@@ -1,4 +1,4 @@
-# ⚔️ [GuildDev](https://guilddev-rust.vercel.app/): Code Together. Level Up. Win.
+# ⚔️ [GuildDev: Code Together. Level Up. Win.](https://guilddev-rust.vercel.app/)
 
 GuildDev is a full-stack, gamified collaborative coding platform designed to blend project-based learning with RPG-style progression. Built for beginner developers, students, and hackathon enthusiasts, it allows users to forge guilds, tackle real-time coding challenges, and climb the global leaderboards.
 
