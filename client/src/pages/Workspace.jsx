@@ -9,7 +9,9 @@ import * as Y from 'yjs';
 import { WebsocketProvider } from 'y-websocket';
 import { MonacoBinding } from 'y-monaco';
 
-const socket = io('https://guilddev.onrender.com'); 
+// Reaching out to the Render backend
+const SOCKET_URL = import.meta.env.VITE_API_URL || "https://guilddev.onrender.com";
+const socket = io(SOCKET_URL);
 
 const LANGUAGES = {
   javascript: { 

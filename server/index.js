@@ -20,11 +20,15 @@ const server = http.createServer(app);
 app.use(cors());
 app.use(express.json());
 
-// --- SOCKET.IO CONFIG ---
+// --- SOCKET.IO CONFIG [UPDATED] ---
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:5173",
-    methods: ["GET", "POST"]
+    origin: [
+      "http://localhost:5173", 
+      "https://guilddev-rust.vercel.app"
+    ],
+    methods: ["GET", "POST"],
+    credentials: true
   }
 });
 
