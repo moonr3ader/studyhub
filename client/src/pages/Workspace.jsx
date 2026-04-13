@@ -14,7 +14,8 @@ const SOCKET_URL = import.meta.env.VITE_API_URL || "https://guilddev.onrender.co
 const socket = io(SOCKET_URL);
 
 // Reaching out to the Render backend for Yjs (Live Code Sync)
-// If we are on localhost, use local port 1234. Otherwise, use secure wss:// on Render.
+// If we are on localhost, use local port 1234. 
+// Otherwise, use secure wss:// on Render.
 const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 const YJS_URL = isLocal ? 'ws://localhost:1234' : 'wss://guilddev.onrender.com';
 
