@@ -9,9 +9,14 @@ import * as Y from 'yjs';
 import { WebsocketProvider } from 'y-websocket';
 import { MonacoBinding } from 'y-monaco';
 
-// Reaching out to the Render backend
+// Reaching out to the Render backend for standard Socket.io (Chat)
 const SOCKET_URL = import.meta.env.VITE_API_URL || "https://guilddev.onrender.com";
 const socket = io(SOCKET_URL);
+
+// Reaching out to the Render backend for Yjs (Live Code Sync)
+// If we are on localhost, use local port 1234. Otherwise, use secure wss:// on Render.
+const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+const YJS_URL = isLocal ? 'ws://localhost:1234' : 'wss://guilddev.onrender.com';
 
 const LANGUAGES = {
   javascript: { 
@@ -94,7 +99,8 @@ const Workspace = () => {
     const ydoc = new Y.Doc();
     ydocRef.current = ydoc;
     
-    const provider = new WebsocketProvider('ws://localhost:1234', `forge-room-${guildId}`, ydoc);
+    // UPDATED: Now uses the dynamic YJS_URL instead of hardcoded localhost
+    const provider = new WebsocketProvider(YJS_URL, `forge-room-${guildId}`, ydoc);
     providerRef.current = provider;
     
     const username = currentUser.email.split('@')[0];
@@ -187,11 +193,9 @@ const Workspace = () => {
         "Leaving the Forge without conquering the trial? \n\nThis bounty and its XP might not be available the next time you return. Are you sure you want to retreat?"
       );
       
-      // If they click "Cancel", stop the function and keep them in the room
       if (!confirmRetreat) return; 
     }
 
-    // If they click "OK" (or if they already won), proceed as normal
     await handleSaveCode();
     navigate(`/guild/${guildId}`);
   };
@@ -230,7 +234,6 @@ const Workspace = () => {
 
       setSubmissionResult(response.data);
     } catch (error) {
-      // Extract the actual backend error message instead of the hardcoded one
       console.error("Detailed Submission Error:", error.response?.data || error.message);
       setSubmissionResult({ 
         success: false, 

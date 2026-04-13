@@ -6,6 +6,10 @@ const cors = require('cors');
 const { Server } = require('socket.io');
 const axios = require('axios');
 
+// --- NEW: YJS & RAW WEBSOCKET IMPORTS ---
+const WebSocket = require('ws');
+const { setupWSConnection } = require('y-websocket/bin/utils');
+
 // --- MY DATABASE MODELS ---
 const User = require('./models/User');
 const Guild = require('./models/Guild');
@@ -821,6 +825,21 @@ io.on('connection', (socket) => {
   });
 });
 
+// =========================================================
+// YJS WEBSOCKET SERVER (LIVE SYNC FORGE)
+// =========================================================
+const wss = new WebSocket.Server({ noServer: true });
+
+wss.on('connection', setupWSConnection);
+
+server.on('upgrade', (request, socket, head) => {
+  // Let Socket.io handle its own upgrades. Only intercept non-Socket.io paths for Yjs.
+  if (!request.url.startsWith('/socket.io')) {
+    wss.handleUpgrade(request, socket, head, (ws) => {
+      wss.emit('connection', ws, request);
+    });
+  }
+});
 
 // --- SERVER START ---
 const PORT = process.env.PORT || 5000;
