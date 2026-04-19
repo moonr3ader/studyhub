@@ -8,7 +8,7 @@ const axios = require('axios');
 
 // --- NEW: YJS & RAW WEBSOCKET IMPORTS ---
 const WebSocket = require('ws');
-const { setupWSConnection } = require('y-websocket/bin/utils.js');
+const { setupWSConnection } = require('y-websocket/bin/utils');
 
 // --- MY DATABASE MODELS ---
 const User = require('./models/User');
