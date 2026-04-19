@@ -33,7 +33,9 @@ const io = new Server(server, {
     ],
     methods: ["GET", "POST"],
     credentials: true
-  }
+  },
+  // ADDED THIS LINE TO STOP SOCKET.IO FROM KILLING YJS CONNECTIONS:
+  destroyUpgrade: false 
 });
 
 // --- DB CONNECTION ---
