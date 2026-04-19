@@ -100,7 +100,6 @@ const Workspace = () => {
     const ydoc = new Y.Doc();
     ydocRef.current = ydoc;
     
-    // UPDATED: Now uses the dynamic YJS_URL instead of hardcoded localhost
     const provider = new WebsocketProvider(YJS_URL, `forge-room-${guildId}`, ydoc);
     providerRef.current = provider;
     
