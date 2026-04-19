@@ -1,14 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Shield, Users, Plus, Swords, X, ArrowLeft } from 'lucide-react';
+import { Shield, Users, Plus, Swords, X, ArrowLeft, Lock } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
 const GuildHub = () => {
   const { currentUser } = useAuth();
   const navigate = useNavigate();
+  
   const [guilds, setGuilds] = useState([]);
   const [leaderboard, setLeaderboard] = useState([]);
+  const [playerData, setPlayerData] = useState(null); // NEW: Need player data to check levels
+  
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   
@@ -16,16 +19,20 @@ const GuildHub = () => {
   const [newGuildName, setNewGuildName] = useState('');
   const [newGuildDesc, setNewGuildDesc] = useState('');
 
-  const fetchGuilds = async () => {
+  // Fetch Guilds, Leaderboard, AND current user's RPG stats
+  const fetchHubData = async () => {
     try {
-      const [guildsRes, leaderboardRes] = await Promise.all([
+      const [guildsRes, leaderboardRes, userRes] = await Promise.all([
         axios.get('https://guilddev.onrender.com/api/guilds'),
-        axios.get('https://guilddev.onrender.com/api/guilds/leaderboard')
+        axios.get('https://guilddev.onrender.com/api/guilds/leaderboard'),
+        currentUser ? axios.get(`https://guilddev.onrender.com/api/user/${currentUser.uid}`) : Promise.resolve({ data: null })
       ]);
+      
       setGuilds(guildsRes.data);
       setLeaderboard(leaderboardRes.data);
+      setPlayerData(userRes.data);
     } catch (err) {
-      console.error("Failed to fetch guilds:", err);
+      console.error("Failed to fetch hub data:", err);
       setError("The Guild Hub is currently offline.");
     } finally {
       setLoading(false);
@@ -33,10 +40,10 @@ const GuildHub = () => {
   };
 
   useEffect(() => {
-    fetchGuilds();
-  }, []);
+    fetchHubData();
+  }, [currentUser]);
 
-  // FORGE A NEW GUILD (Corrected)
+  // FORGE A NEW GUILD
   const handleForgeGuild = async (e) => {
     e.preventDefault();
     if (!currentUser) return alert("You must be logged in!");
@@ -50,14 +57,14 @@ const GuildHub = () => {
       
       alert("Guild forged successfully!");
       setShowModal(false);
-      navigate('/dashboard'); // Teleport to dashboard to see the new guild status
+      navigate('/dashboard'); 
 
     } catch (err) {
       alert(err.response?.data?.error || "Failed to forge the guild.");
     }
   };
 
-  // JOIN A GUILD (Fixed Success/Fail Conflict)
+  // JOIN A GUILD
   const handleJoinGuild = async (guildId) => {
     if (!currentUser) return alert("You must be logged in to join a team!");
 
@@ -68,17 +75,14 @@ const GuildHub = () => {
       });
 
       if (response.status === 200) {
-        alert("Success! You have been drafted into the guild.");
-        return navigate('/dashboard'); // Use 'return' to stop function execution here!
+        alert("Success! Your petition has been sent to the Guild Leader.");
+        return navigate('/dashboard'); 
       }
       
     } catch (err) {
       alert(err.response?.data?.error || "Failed to join the guild.");
     }
   };
-
-  // Removed the duplicate handleCreate function that was at the bottom 
-  // as it was redundant and used undefined variables.
 
   if (loading) {
     return <div className="min-h-screen bg-[#0B0E14] flex items-center justify-center text-purple-500 font-mono animate-pulse">Loading the Hub...</div>;
@@ -143,23 +147,52 @@ const GuildHub = () => {
 
         {/* Guild Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {guilds.map((guild) => (
-            <div key={guild._id} className="bg-[#161B22] border border-white/5 rounded-3xl p-6 hover:border-purple-500/30 transition-all group flex flex-col shadow-lg">
-              <div className="flex justify-between items-start mb-4">
-                <h3 className="text-xl font-bold text-white group-hover:text-purple-400 transition-colors">{guild.guildName}</h3>
-                <span className="bg-[#0B0E14] text-slate-400 px-3 py-1 rounded-lg text-xs font-mono border border-white/5 flex items-center gap-2">
-                  <Users size={12} /> {guild.members?.length || 0}/5
-                </span>
+          {guilds.map((guild) => {
+            // RPG LOGIC: Check if user is allowed to apply
+            const minLevel = guild.minimumLevel || 1;
+            const isUnderleveled = (playerData?.level || 1) < minLevel;
+            const hasActiveOath = playerData?.isInGuild || playerData?.pendingGuildID;
+
+            return (
+              <div key={guild._id} className="bg-[#161B22] border border-white/5 rounded-3xl p-6 hover:border-purple-500/30 transition-all group flex flex-col shadow-lg">
+                <div className="flex justify-between items-start mb-4">
+                  <h3 className="text-xl font-bold text-white group-hover:text-purple-400 transition-colors">{guild.guildName}</h3>
+                  <span className="bg-[#0B0E14] text-slate-400 px-3 py-1 rounded-lg text-xs font-mono border border-white/5 flex items-center gap-2">
+                    <Users size={12} /> {guild.members?.length || 0}/5
+                  </span>
+                </div>
+                
+                {/* Display Minimum Level Requirement if greater than 1 */}
+                {minLevel > 1 && (
+                  <div className="mb-2">
+                    <span className="bg-yellow-500/10 text-yellow-500 border border-yellow-500/20 text-[10px] uppercase tracking-widest px-2 py-1 rounded">
+                      Req: Level {minLevel}
+                    </span>
+                  </div>
+                )}
+                
+                <p className="text-slate-400 text-sm mb-6 flex-1 italic">"{guild.guildDescription}"</p>
+                
+                {/* CONDITIONAL RENDER: The Gatekeeper Buttons */}
+                {hasActiveOath ? (
+                  <button disabled className="w-full bg-[#0B0E14] text-slate-500 border border-white/5 py-3 rounded-xl font-bold flex items-center justify-center gap-2 cursor-not-allowed">
+                    Active Oath Found
+                  </button>
+                ) : isUnderleveled ? (
+                  <button disabled className="w-full bg-red-900/10 text-red-500 border border-red-900/30 py-3 rounded-xl font-bold flex items-center justify-center gap-2 cursor-not-allowed">
+                    <Lock size={16} /> Requires Level {minLevel}
+                  </button>
+                ) : (
+                  <button 
+                    onClick={() => handleJoinGuild(guild._id)}
+                    className="w-full bg-[#0B0E14] hover:bg-emerald-600/20 text-emerald-500 border border-emerald-500/30 hover:border-emerald-500 py-3 rounded-xl font-bold transition-all flex items-center justify-center gap-2 active:scale-95"
+                  >
+                    <Swords size={18} /> Request to Join
+                  </button>
+                )}
               </div>
-              <p className="text-slate-400 text-sm mb-6 flex-1 italic">"{guild.guildDescription}"</p>
-              <button 
-                onClick={() => handleJoinGuild(guild._id)}
-                className="w-full bg-[#0B0E14] hover:bg-emerald-600/20 text-emerald-500 border border-emerald-500/30 hover:border-emerald-500 py-3 rounded-xl font-bold transition-all flex items-center justify-center gap-2 active:scale-95"
-              >
-                <Swords size={18} /> Request to Join
-              </button>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
