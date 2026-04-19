@@ -28,6 +28,10 @@ const GuildSchema = new mongoose.Schema({
         type: Boolean, 
         default: true 
     },
+    minimumLevel: { 
+    type: Number, 
+    default: 1
+  },
     createdAt: { 
         type: Date, 
         default: Date.now 

@@ -135,6 +135,29 @@ app.get('/api/user/:uid', async (req, res) => {
   }
 });
 
+// Fetch a user's recent successful quest history
+app.get('/api/user/:uid/quests/recent', async (req, res) => {
+  try {
+    const user = await User.findOne({ firebaseUid: req.params.uid });
+    if (!user) return res.status(404).json({ error: "Adventurer not found" });
+
+    // Find valid submissions, sort by newest first, limit to 5
+    // .populate() reaches into the Challenge collection to grab the title
+    const recentActivity = await Submission.find({ 
+      userId: user._id, 
+      isValid: true 
+    })
+    .sort({ createdAt: -1 })
+    .limit(5)
+    .populate('challengeId', 'title challengeType totalXP'); // Ensure 'title' matches the Challenge schema
+
+    res.status(200).json(recentActivity);
+  } catch (err) {
+    console.error("Quest Log Error:", err);
+    res.status(500).json({ error: "Failed to retrieve quest history" });
+  }
+});
+
 // Update profile settings
 app.patch('/api/user/:uid', async (req, res) => {
   const { username } = req.body;
@@ -269,7 +292,15 @@ app.post('/api/guilds/join', async (req, res) => {
     const guild = await Guild.findById(guildId);
 
     if (!user || !guild) return res.status(404).json({ error: "Record not found." });
+
+    if (user.level < guild.minimumLevel) {
+      return res.status(403).json({ 
+        error: `Under-leveled! You must reach Level ${guild.minimumLevel} to petition this guild.` 
+      });
+    }
+
     if (user.isInGuild || user.pendingGuildID) return res.status(400).json({ error: "You already have an active or pending oath." });
+    
     if (guild.members.length >= 5) return res.status(400).json({ error: "This guild's roster is full." });
 
     guild.pendingRequests.push(user._id);

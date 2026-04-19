@@ -16,6 +16,10 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [showNotifications, setShowNotifications] = useState(false);
   const [timeLeft, setTimeLeft] = useState("");
+  
+  // NEW: Dynamic Quest Log State
+  const [questLog, setQuestLog] = useState([]);
+  const [loadingLog, setLoadingLog] = useState(true);
 
   // ==========================================
   // DATA FETCHING & EFFECTS
@@ -38,7 +42,25 @@ const Dashboard = () => {
     fetchPlayerData();
   }, [currentUser]);
 
-  // 2. Daily Scroll Cooldown Timer
+  // 2. Fetch Dynamic Quest History
+  useEffect(() => {
+    const fetchQuestLog = async () => {
+      if (!currentUser) return setLoadingLog(false);
+
+      try {
+        const response = await axios.get(`https://guilddev.onrender.com/api/user/${currentUser.uid}/quests/recent`);
+        // const response = await axios.get(`http://localhost:5000/api/user/${currentUser.uid}/quests/recent`);
+        setQuestLog(response.data);
+      } catch (error) {
+        console.error("Failed to fetch quest log:", error);
+      } finally {
+        setLoadingLog(false);
+      }
+    };
+    fetchQuestLog();
+  }, [currentUser]);
+
+  // 3. Daily Scroll Cooldown Timer
   useEffect(() => {
     const updateCountdown = () => {
       if (!playerData?.lastClaimed) return;
@@ -67,7 +89,6 @@ const Dashboard = () => {
   // HANDLERS
   // ==========================================
 
-  console.log("Current Player Data:", playerData);
   const handleLogout = async () => {
     try {
       await logout(); 
@@ -266,7 +287,7 @@ const Dashboard = () => {
             </div>
           </header>
 
-          {/* --- NEW CHECKLIST SECTION --- */}
+          {/* --- CHECKLIST SECTION --- */}
           {playerData.isQualified && (
             <OnboardingChecklist />
           )}
@@ -385,26 +406,46 @@ const Dashboard = () => {
             </div>
           </div>
 
-          {/* --- QUEST LOG --- */}
+          {/* --- DYNAMIC QUEST LOG --- */}
           <div className="bg-[#161B22] border border-white/10 rounded-3xl p-6 md:p-8 shadow-lg">
             <h3 className="text-lg md:text-xl font-black text-white mb-6 flex items-center gap-3 uppercase tracking-widest">
               <Clock className="text-blue-500"/> Recent Quest Log
             </h3>
-            <div className="space-y-4">
-              {playerData.isQualified ? (
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-5 bg-[#0B0E14] rounded-2xl border border-emerald-500/20 hover:border-emerald-500/50 transition-colors shadow-sm gap-4">
-                  <div>
-                    <p className="font-bold text-white text-base md:text-lg">The Preliminary Trial</p>
-                    <p className="text-xs md:text-sm text-slate-500 mt-1">GuildDev Entry Test</p>
+            
+            {loadingLog ? (
+               <div className="text-slate-500 font-mono text-sm animate-pulse px-4">Consulting the archives...</div>
+            ) : (
+              <div className="space-y-4">
+                
+                {/* 1. Dynamic Map of Completed Quests */}
+                {questLog.length > 0 && questLog.map((entry) => (
+                  <div key={entry._id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-5 bg-[#0B0E14] rounded-2xl border border-purple-500/20 hover:border-purple-500/50 transition-colors shadow-sm gap-4">
+                    <div>
+                      <p className="font-bold text-white text-base md:text-lg">{entry.challengeId?.title || "Unknown Quest"}</p>
+                      <p className="text-xs md:text-sm text-slate-500 mt-1">Conquered on {new Date(entry.createdAt).toLocaleDateString()}</p>
+                    </div>
+                    <div className="text-purple-400 font-mono font-black text-sm md:text-lg bg-purple-500/10 px-4 py-2 rounded-lg border border-purple-500/20 self-start sm:self-auto">
+                      +{entry.xpAwarded || entry.challengeId?.totalXP} XP
+                    </div>
                   </div>
-                  <div className="text-emerald-400 font-mono font-black text-sm md:text-lg bg-emerald-500/10 px-4 py-2 rounded-lg border border-emerald-500/20 self-start sm:self-auto">+100 XP</div>
-                </div>
-              ) : (
-                <div className="text-center p-8 bg-[#0B0E14] rounded-2xl border border-dashed border-white/10 text-slate-500 font-mono text-sm md:text-base">
-                  Your quest log is empty. Complete the trial above to begin!
-                </div>
-              )}
-            </div>
+                ))}
+
+                {/* 2. The Hardcoded Preliminary Trial (Always at the bottom if qualified) */}
+                {playerData.isQualified ? (
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-5 bg-[#0B0E14] rounded-2xl border border-emerald-500/20 hover:border-emerald-500/50 transition-colors shadow-sm gap-4">
+                    <div>
+                      <p className="font-bold text-white text-base md:text-lg">The Preliminary Trial</p>
+                      <p className="text-xs md:text-sm text-slate-500 mt-1">GuildDev Entry Test</p>
+                    </div>
+                    <div className="text-emerald-400 font-mono font-black text-sm md:text-lg bg-emerald-500/10 px-4 py-2 rounded-lg border border-emerald-500/20 self-start sm:self-auto">+100 XP</div>
+                  </div>
+                ) : (
+                  <div className="text-center p-8 bg-[#0B0E14] rounded-2xl border border-dashed border-white/10 text-slate-500 font-mono text-sm md:text-base">
+                    Your quest log is empty. Complete the trial above to begin!
+                  </div>
+                )}
+              </div>
+            )}
           </div>
           
           {/* --- REALM FACILITIES --- */}

@@ -48,7 +48,7 @@ const UserSchema = new mongoose.Schema({
         type: Date,
         default: null 
     },
-    // Grants ultimate authority over the GuildDev platform, and
+    // Grants authority over the GuildDev platform, and
     // to render special UI elements and bypass standard game rules.
     isAdmin: { 
         type: Boolean, 
