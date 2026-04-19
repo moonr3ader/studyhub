@@ -6,9 +6,10 @@ const cors = require('cors');
 const { Server } = require('socket.io');
 const axios = require('axios');
 
-// --- NEW: YJS & RAW WEBSOCKET IMPORTS ---
+// --- YJS & RAW WEBSOCKET IMPORTS ---
 const WebSocket = require('ws');
-const { setupWSConnection } = require('y-websocket/bin/utils');
+// const { setupWSConnection } = require('y-websocket/bin/utils');
+const { setupWSConnection } = require('./node_modules/y-websocket/bin/utils.js');
 
 // --- MY DATABASE MODELS ---
 const User = require('./models/User');
@@ -835,7 +836,6 @@ const wss = new WebSocket.Server({ noServer: true });
 wss.on('connection', setupWSConnection);
 
 server.on('upgrade', (request, socket, head) => {
-  // Let Socket.io handle its own upgrades. Only intercept non-Socket.io paths for Yjs.
   if (!request.url.startsWith('/socket.io')) {
     wss.handleUpgrade(request, socket, head, (ws) => {
       wss.emit('connection', ws, request);
